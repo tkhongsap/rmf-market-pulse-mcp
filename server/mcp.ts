@@ -69,7 +69,7 @@ export class RMFMCPServer {
       'Get NAV (Net Asset Value) history for a specific Thai RMF fund over time',
       {
         fundCode: z.string().describe('Fund symbol/code (e.g., "ABAPAC-RMF")'),
-        days: z.number().optional().default(30).describe('Number of days of history (max: 365)'),
+        days: z.number().min(1).max(365).optional().default(30).describe('Number of days of history (1-365)'),
       },
       async (args) => this.handleGetRmfFundNavHistory(args)
     );

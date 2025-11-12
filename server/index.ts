@@ -74,13 +74,16 @@ app.post('/mcp', async (req, res) => {
     await rmfMCPServer.getServer().connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
+    // Log full error details internally for debugging
     console.error('MCP endpoint error:', error);
+
+    // Return generic error message to client (no stack traces or internal details)
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
         error: {
           code: -32603,
-          message: error instanceof Error ? error.message : 'Internal error',
+          message: 'An error occurred while processing your request',
         },
         id: null,
       });
