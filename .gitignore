@@ -11,3 +11,4 @@ vite.config.ts.*
 # Generated data pipeline files
 data/progress.json
 data/batch-process.log
+coverage/
