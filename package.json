@@ -25,6 +25,7 @@
     "test": "tsx test-mcp-tools.ts",
     "test:coverage": "c8 --reporter=text --reporter=lcov --include='server/**/*.ts' --exclude='server/index.ts' tsx test-mcp-tools.ts",
     "test:http": "./test-mcp-http.sh",
+    "test:security": "node test-security.mjs",
     "data:rmf:generate-list": "tsx scripts/data-extraction/rmf/generate-rmf-fund-list.ts",
     "data:rmf:build-mapping": "tsx scripts/data-extraction/rmf/phase-0-build-mapping.ts",
     "data:rmf:fetch-all": "tsx scripts/data-extraction/rmf/phase-1-fetch-all-funds.ts",
@@ -37,12 +38,16 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.21.1",
+    "cors": "^2.8.5",
     "csv-parse": "^6.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "4.17.21",
     "@types/node": "20.16.11",
     "c8": "^10.1.3",

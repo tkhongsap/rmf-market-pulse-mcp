@@ -19,15 +19,34 @@
 
 import express from 'express';
 import { createServer } from 'http';
+import helmet from 'helmet';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { rmfMCPServer } from './mcp';
 import { rmfDataService } from './services/rmfDataService';
 
 const app = express();
 
+// Security: Helmet middleware for secure HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Disabled for MCP protocol compatibility
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Security: CORS configuration
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Accept'],
+  credentials: false,
+  maxAge: 86400, // 24 hours
+};
+app.use(cors(corsOptions));
+
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '1mb' })); // Limit payload size
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // Request logging for MCP endpoint
 app.use((req, res, next) => {
@@ -57,10 +76,31 @@ app.get('/healthz', (_req, res) => {
 });
 
 /**
+ * Security: Rate limiting for MCP endpoint
+ * Prevents DoS attacks by limiting requests per IP
+ */
+const mcpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per 15 minutes
+  message: {
+    jsonrpc: '2.0',
+    error: {
+      code: -32000,
+      message: 'Too many requests. Please try again later.',
+    },
+    id: null,
+  },
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  // Skip rate limiting for health checks from monitoring systems
+  skip: (req) => req.path === '/healthz',
+});
+
+/**
  * MCP Protocol endpoint (POST only)
  * Handles all MCP tool calls according to the Model Context Protocol
  */
-app.post('/mcp', async (req, res) => {
+app.post('/mcp', mcpLimiter, async (req, res) => {
   try {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
