@@ -146,6 +146,7 @@ export class RMFMCPServer {
       minYtdReturn: args?.minYtdReturn,
       sortBy: args?.sortBy,
       sortOrder: args?.sortOrder,
+      page: 1,
       pageSize: args?.limit || 20,
     });
 
