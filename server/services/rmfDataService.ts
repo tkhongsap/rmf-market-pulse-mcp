@@ -273,14 +273,27 @@ export class RMFDataService {
   }
 
   getNavHistory(symbol: string, days: number = 30): RMFNavHistory[] {
-    const cacheKey = `${symbol}_${days}`;
-    
+    // SECURITY: Sanitize symbol to prevent path traversal
+    // Only allow alphanumeric characters, dash, and underscore
+    const sanitizedSymbol = symbol.replace(/[^a-zA-Z0-9\-_]/g, '');
+
+    // Validate symbol exists in our fund list
+    if (!this.fundsMap.has(sanitizedSymbol)) {
+      console.warn(`Invalid or unknown fund symbol requested: ${symbol}`);
+      return [];
+    }
+
+    // Enforce max days limit (365)
+    const safeDays = Math.min(Math.max(days, 1), 365);
+
+    const cacheKey = `${sanitizedSymbol}_${safeDays}`;
+
     if (this.navHistoryCache.has(cacheKey)) {
       return this.navHistoryCache.get(cacheKey)!;
     }
 
     try {
-      const jsonPath = join(process.cwd(), 'data', 'rmf-funds', `${symbol}.json`);
+      const jsonPath = join(process.cwd(), 'data', 'rmf-funds', `${sanitizedSymbol}.json`);
       const fileContent = readFileSync(jsonPath, 'utf-8');
       const fundData = JSON.parse(fileContent);
 
@@ -297,12 +310,12 @@ export class RMFDataService {
           : 0,
       }));
 
-      const filteredHistory = navHistory.slice(-days);
+      const filteredHistory = navHistory.slice(-safeDays);
       this.navHistoryCache.set(cacheKey, filteredHistory);
 
       return filteredHistory;
     } catch (error) {
-      console.warn(`Failed to load NAV history for ${symbol}:`, error);
+      console.warn(`Failed to load NAV history for ${sanitizedSymbol}:`, error);
       return [];
     }
   }
