@@ -338,7 +338,7 @@ export class RMFMCPServer {
     // Limit results
     const topFunds = filteredFunds.slice(0, limit);
 
-    const periodLabel = {
+    const periodLabelMap: Record<string, string> = {
       'ytd': 'YTD',
       '3m': '3-Month',
       '6m': '6-Month',
@@ -346,7 +346,8 @@ export class RMFMCPServer {
       '3y': '3-Year',
       '5y': '5-Year',
       '10y': '10-Year',
-    }[period];
+    };
+    const periodLabel = periodLabelMap[period];
 
     const textSummary = riskLevel
       ? `Top ${topFunds.length} performing RMF funds for ${periodLabel} (Risk Level ${riskLevel})`
@@ -517,10 +518,10 @@ export class RMFMCPServer {
       return fund;
     });
 
-    const textSummary = `Comparing ${funds.length} RMF funds: ${funds.map(f => f.symbol).join(', ')}`;
+    const textSummary = `Comparing ${funds.length} RMF funds: ${funds.map((f: any) => f.symbol).join(', ')}`;
 
     // Build comparison data
-    const comparison = funds.map(fund => {
+    const comparison = funds.map((fund: any) => {
       const data: any = {
         symbol: fund.symbol,
         fund_name: fund.fund_name,
