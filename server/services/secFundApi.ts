@@ -138,7 +138,7 @@ async function secApiRequest<T>(
       throw error;
     }
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Ocp-Apim-Subscription-Key': apiKey,
     };
 

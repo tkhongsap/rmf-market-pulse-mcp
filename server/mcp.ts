@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { rmfDataService } from './services/rmfDataService';
 import { z } from 'zod';
+import type { RMFFundCSV } from '@shared/schema';
 
 export class RMFMCPServer {
   private server: McpServer;
@@ -86,8 +87,8 @@ export class RMFMCPServer {
   }
 
   private async handleGetRmfFunds(args: any) {
-    const page = args?.page || 1;
-    const pageSize = Math.min(args?.pageSize || 20, 50);
+    const page = Math.max(1, args?.page || 1); // Prevent negative pages
+    const pageSize = Math.min(Math.max(1, args?.pageSize || 20), 50); // Enforce 1-50 range
     const sortBy = args?.sortBy;
     const sortOrder = args?.sortOrder || (sortBy ? 'desc' : 'asc');
 
@@ -280,7 +281,7 @@ export class RMFMCPServer {
   }
 
   private async handleGetRmfFundPerformance(args: any) {
-    const period = args?.period || 'ytd';
+    const period: 'ytd' | '3m' | '6m' | '1y' | '3y' | '5y' | '10y' = args?.period || 'ytd';
     const sortOrder = args?.sortOrder || 'desc';
     const limit = args?.limit || 10;
     const riskLevel = args?.riskLevel;
@@ -338,7 +339,7 @@ export class RMFMCPServer {
     // Limit results
     const topFunds = filteredFunds.slice(0, limit);
 
-    const periodLabel = {
+    const periodLabel: Record<string, string> = {
       'ytd': 'YTD',
       '3m': '3-Month',
       '6m': '6-Month',
@@ -346,11 +347,12 @@ export class RMFMCPServer {
       '3y': '3-Year',
       '5y': '5-Year',
       '10y': '10-Year',
-    }[period];
+    };
+    const periodLabelText = periodLabel[period] || period;
 
     const textSummary = riskLevel
-      ? `Top ${topFunds.length} performing RMF funds for ${periodLabel} (Risk Level ${riskLevel})`
-      : `Top ${topFunds.length} performing RMF funds for ${periodLabel}`;
+      ? `Top ${topFunds.length} performing RMF funds for ${periodLabelText} (Risk Level ${riskLevel})`
+      : `Top ${topFunds.length} performing RMF funds for ${periodLabelText}`;
 
     const fundsData = topFunds.map((f, index) => {
       const fundPerf = (f as any)[perfField];
@@ -384,7 +386,7 @@ export class RMFMCPServer {
           type: 'text' as const,
           text: JSON.stringify({
             period,
-            periodLabel,
+            periodLabel: periodLabelText,
             funds: fundsData,
             totalCount: topFunds.length,
             filters: { riskLevel },
@@ -517,10 +519,10 @@ export class RMFMCPServer {
       return fund;
     });
 
-    const textSummary = `Comparing ${funds.length} RMF funds: ${funds.map(f => f.symbol).join(', ')}`;
+    const textSummary = `Comparing ${funds.length} RMF funds: ${funds.map((f: RMFFundCSV) => f.symbol).join(', ')}`;
 
     // Build comparison data
-    const comparison = funds.map(fund => {
+    const comparison = funds.map((fund: RMFFundCSV) => {
       const data: any = {
         symbol: fund.symbol,
         fund_name: fund.fund_name,
