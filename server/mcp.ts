@@ -2,6 +2,20 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { rmfDataService } from './services/rmfDataService';
 import { z } from 'zod';
 import type { RMFFundCSV } from '@shared/schema';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Setup paths for widget templates
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load widget templates for OpenAI Apps SDK
+const widgetTemplates: Record<string, string> = {
+  'fund-detail': fs.readFileSync(path.join(__dirname, 'widgets', 'fund-detail.html'), 'utf-8'),
+  'fund-list': fs.readFileSync(path.join(__dirname, 'widgets', 'fund-list.html'), 'utf-8'),
+  'fund-comparison': fs.readFileSync(path.join(__dirname, 'widgets', 'fund-comparison.html'), 'utf-8'),
+};
 
 export class RMFMCPServer {
   private server: McpServer;
@@ -13,7 +27,27 @@ export class RMFMCPServer {
     });
 
     this.setupTools();
+    // Note: Resource registration for Apps SDK widgets will be added when MCP SDK fully supports it
+    // For now, _meta fields in responses provide Apps SDK compatibility
   }
+
+  // TODO: Re-enable when MCP SDK supports Apps SDK resource patterns
+  // private setupResources() {
+  //   // Register HTML widgets as MCP resources for OpenAI Apps SDK
+  //   this.server.resource({
+  //     uri: 'ui://fund-detail',
+  //     name: 'Fund Detail Widget',
+  //     description: 'Interactive widget for displaying detailed Thai RMF fund information',
+  //     mimeType: 'text/html+skybridge',
+  //   }, async () => ({
+  //     contents: [{
+  //       uri: 'ui://fund-detail',
+  //       mimeType: 'text/html+skybridge',
+  //       text: widgetTemplates['fund-detail'],
+  //     }],
+  //   }));
+  //   // ... other resources
+  // }
 
   private setupTools() {
     this.server.tool(
@@ -102,18 +136,17 @@ export class RMFMCPServer {
     const textSummary = `Found ${totalCount} RMF funds. Showing page ${page} (${funds.length} funds).`;
 
     const fundsData = funds.map(f => ({
-      symbol: f.symbol,
-      fund_name: f.fund_name,
-      amc: f.amc,
-      nav_value: f.nav_value,
-      nav_change: f.nav_change,
-      nav_change_percent: f.nav_change_percent,
-      risk_level: f.risk_level,
-      perf_ytd: f.perf_ytd,
-      perf_1y: f.perf_1y,
-      fund_classification: f.fund_classification,
+      proj_abbr_name: f.symbol,
+      proj_name_en: f.fund_name,
+      unique_id: f.amc,
+      last_val: f.nav_value,
+      return_ytd: f.perf_ytd,
+      return_1y: f.perf_1y,
+      risk_spectrum: f.risk_level,
+      classification: f.fund_classification,
     }));
 
+    // OpenAI Apps SDK compatible response format
     return {
       content: [
         {
@@ -123,18 +156,20 @@ export class RMFMCPServer {
         {
           type: 'text' as const,
           text: JSON.stringify({
-            funds: fundsData,
-            pagination: {
-              page,
-              pageSize,
-              totalCount,
-              totalPages: Math.ceil(totalCount / pageSize),
-            },
-            timestamp: new Date().toISOString(),
+            funds: fundsData.slice(0, 10),
+            pagination: { page, pageSize, totalCount, totalPages: Math.ceil(totalCount / pageSize) },
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
+        funds: fundsData,
+        page,
+        pageSize,
+        total: totalCount,
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
   }
 
   private async handleSearchRmfFunds(args: any) {
@@ -164,19 +199,18 @@ export class RMFMCPServer {
       : `Found ${totalCount} RMF funds.`;
 
     const fundsData = funds.map(f => ({
-      symbol: f.symbol,
-      fund_name: f.fund_name,
-      amc: f.amc,
-      nav_value: f.nav_value,
-      nav_change: f.nav_change,
-      nav_change_percent: f.nav_change_percent,
-      risk_level: f.risk_level,
-      perf_ytd: f.perf_ytd,
-      perf_1y: f.perf_1y,
-      perf_3y: f.perf_3y,
-      fund_classification: f.fund_classification,
+      proj_abbr_name: f.symbol,
+      proj_name_en: f.fund_name,
+      unique_id: f.amc,
+      last_val: f.nav_value,
+      return_ytd: f.perf_ytd,
+      return_1y: f.perf_1y,
+      return_3y: f.perf_3y,
+      risk_spectrum: f.risk_level,
+      classification: f.fund_classification,
     }));
 
+    // OpenAI Apps SDK compatible response format
     return {
       content: [
         {
@@ -186,25 +220,33 @@ export class RMFMCPServer {
         {
           type: 'text' as const,
           text: JSON.stringify({
-            funds: fundsData,
+            funds: fundsData.slice(0, 10),
             totalCount,
-            filters: args,
-            timestamp: new Date().toISOString(),
+            filters: filters,
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
+        funds: fundsData,
+        page: 1,
+        pageSize: args?.limit || 20,
+        total: totalCount,
+        filters: args,
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
   }
 
   private async handleGetRmfFundDetail(args: any) {
     const fundCode = args?.fundCode;
-    
+
     if (!fundCode) {
       throw new Error('fundCode parameter is required');
     }
 
     const fund = rmfDataService.getBySymbol(fundCode);
-    
+
     if (!fund) {
       throw new Error(`Fund not found: ${fundCode}`);
     }
@@ -213,59 +255,7 @@ export class RMFMCPServer {
 
     const textSummary = `${fund.fund_name} (${fund.symbol}) managed by ${fund.amc}. Current NAV: ${fund.nav_value} THB (${fund.nav_change >= 0 ? '+' : ''}${fund.nav_change_percent.toFixed(2)}%). Risk level: ${fund.risk_level}/8.`;
 
-    const fundDetail = {
-      symbol: fund.symbol,
-      fund_name: fund.fund_name,
-      amc: fund.amc,
-      fund_classification: fund.fund_classification,
-      risk_level: fund.risk_level,
-      management_style: fund.management_style,
-      dividend_policy: fund.dividend_policy,
-      nav_value: fund.nav_value,
-      nav_change: fund.nav_change,
-      nav_change_percent: fund.nav_change_percent,
-      nav_date: fund.nav_date,
-      buy_price: fund.buy_price,
-      sell_price: fund.sell_price,
-      performance: {
-        ytd: fund.perf_ytd,
-        '3m': fund.perf_3m,
-        '6m': fund.perf_6m,
-        '1y': fund.perf_1y,
-        '3y': fund.perf_3y,
-        '5y': fund.perf_5y,
-        '10y': fund.perf_10y,
-        since_inception: fund.perf_since_inception,
-      },
-      benchmark: fund.benchmark_name ? {
-        name: fund.benchmark_name,
-        ytd: fund.benchmark_ytd,
-        '3m': fund.benchmark_3m,
-        '6m': fund.benchmark_6m,
-        '1y': fund.benchmark_1y,
-        '3y': fund.benchmark_3y,
-        '5y': fund.benchmark_5y,
-        '10y': fund.benchmark_10y,
-      } : null,
-      asset_allocation: fund.asset_allocation_json,
-      fees: fund.fees_json,
-      parties: fund.parties_json,
-      holdings: fund.holdings_json,
-      risk_factors: fund.risk_factors_json,
-      suitability: fund.suitability_json,
-      documents: {
-        factsheet_url: fund.factsheet_url,
-        annual_report_url: fund.annual_report_url,
-        halfyear_report_url: fund.halfyear_report_url,
-      },
-      investment_minimums: {
-        initial: fund.investment_min_initial,
-        additional: fund.investment_min_additional,
-      },
-      navHistory7d,
-      timestamp: new Date().toISOString(),
-    };
-
+    // OpenAI Apps SDK compatible response format
     return {
       content: [
         {
@@ -274,10 +264,60 @@ export class RMFMCPServer {
         },
         {
           type: 'text' as const,
-          text: JSON.stringify(fundDetail, null, 2),
+          text: JSON.stringify({
+            symbol: fund.symbol,
+            fund_name: fund.fund_name,
+            amc: fund.amc,
+            nav_value: fund.nav_value,
+            nav_change_percent: fund.nav_change_percent,
+            risk_level: fund.risk_level,
+            performance: {
+              ytd: fund.perf_ytd,
+              '1y': fund.perf_1y,
+              '3y': fund.perf_3y,
+              '5y': fund.perf_5y,
+            },
+          }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-detail',
+        fundData: {
+          proj_abbr_name: fund.symbol,
+          proj_name_en: fund.fund_name,
+          unique_id: fund.amc,
+          last_val: fund.nav_value,
+          nav_date: fund.nav_date,
+          return_ytd: fund.perf_ytd,
+          return_3m: fund.perf_3m,
+          return_6m: fund.perf_6m,
+          return_1y: fund.perf_1y,
+          return_3y: fund.perf_3y,
+          return_5y: fund.perf_5y,
+          return_10y: fund.perf_10y,
+          risk_spectrum: fund.risk_level,
+          classification: fund.fund_classification,
+          management_style: fund.management_style,
+          dividend_policy: fund.dividend_policy,
+          buy_price: fund.buy_price,
+          sell_price: fund.sell_price,
+          benchmark_name: fund.benchmark_name,
+          benchmark_ytd: fund.benchmark_ytd,
+          benchmark_1y: fund.benchmark_1y,
+          benchmark_3y: fund.benchmark_3y,
+          benchmark_5y: fund.benchmark_5y,
+          asset_allocation: fund.asset_allocation_json,
+          fees: fund.fees_json,
+          parties: fund.parties_json,
+          holdings: fund.holdings_json,
+          investment_min_initial: fund.investment_min_initial,
+          investment_min_additional: fund.investment_min_additional,
+          factsheet_url: fund.factsheet_url,
+          navHistory7d,
+        },
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
   }
 
   private async handleGetRmfFundPerformance(args: any) {
@@ -357,25 +397,26 @@ export class RMFMCPServer {
     const fundsData = topFunds.map((f, index) => {
       const fundPerf = (f as any)[perfField];
       const benchPerf = (f as any)[benchmarkField];
-      
+
       return {
         rank: index + 1,
-        symbol: f.symbol,
-        fund_name: f.fund_name,
-        amc: f.amc,
-        risk_level: f.risk_level,
+        proj_abbr_name: f.symbol,
+        proj_name_en: f.fund_name,
+        unique_id: f.amc,
+        risk_spectrum: f.risk_level,
         performance: fundPerf,
-        nav_value: f.nav_value,
-        benchmark: f.benchmark_name ? {
-          name: f.benchmark_name,
-          performance: benchPerf,
-          outperformance: fundPerf !== null && fundPerf !== undefined && benchPerf !== null && benchPerf !== undefined
-            ? parseFloat((fundPerf - benchPerf).toFixed(2))
-            : null,
-        } : null,
+        last_val: f.nav_value,
+        return_ytd: f.perf_ytd,
+        return_1y: f.perf_1y,
+        benchmark_name: f.benchmark_name,
+        benchmark_performance: benchPerf,
+        outperformance: fundPerf !== null && fundPerf !== undefined && benchPerf !== null && benchPerf !== undefined
+          ? parseFloat((fundPerf - benchPerf).toFixed(2))
+          : null,
       };
     });
 
+    // OpenAI Apps SDK compatible response format
     return {
       content: [
         {
@@ -385,16 +426,29 @@ export class RMFMCPServer {
         {
           type: 'text' as const,
           text: JSON.stringify({
-            period,
-            periodLabel: periodLabelText,
-            funds: fundsData,
-            totalCount: topFunds.length,
-            filters: { riskLevel },
-            timestamp: new Date().toISOString(),
+            period: periodLabelText,
+            topFunds: fundsData.slice(0, 10).map(f => ({
+              rank: f.rank,
+              symbol: f.proj_abbr_name,
+              name: f.proj_name_en,
+              performance: f.performance,
+              risk: f.risk_spectrum,
+            })),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
+        funds: fundsData,
+        page: 1,
+        pageSize: limit,
+        total: topFunds.length,
+        period,
+        periodLabel: periodLabelText,
+        filters: { riskLevel },
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
   }
 
   private async handleGetRmfFundNavHistory(args: any) {
@@ -463,6 +517,17 @@ export class RMFMCPServer {
 
     const textSummary = `${fund.fund_name} (${fundCode}) NAV history over ${days} days. Period return: ${periodReturn}%. Volatility: ${volatility}%.`;
 
+    const navHistoryData = navHistory.map(h => ({
+      date: h.nav_date,
+      nav: h.last_val,
+      previous_nav: h.previous_val,
+      change: h.last_val && h.previous_val ? h.last_val - h.previous_val : null,
+      change_percent: h.last_val && h.previous_val && h.previous_val > 0
+        ? parseFloat(((h.last_val - h.previous_val) / h.previous_val * 100).toFixed(2))
+        : null,
+    }));
+
+    // OpenAI Apps SDK compatible response format
     return {
       content: [
         {
@@ -472,18 +537,7 @@ export class RMFMCPServer {
         {
           type: 'text' as const,
           text: JSON.stringify({
-            symbol: fundCode,
-            fund_name: fund.fund_name,
-            days,
-            navHistory: navHistory.map(h => ({
-              date: h.nav_date,
-              nav: h.last_val,
-              previous_nav: h.previous_val,
-              change: h.last_val && h.previous_val ? h.last_val - h.previous_val : null,
-              change_percent: h.last_val && h.previous_val && h.previous_val > 0 
-                ? ((h.last_val - h.previous_val) / h.previous_val * 100).toFixed(2)
-                : null,
-            })),
+            navHistory: navHistoryData.slice(0, 10),
             statistics: {
               minNav: minNav.toFixed(4),
               maxNav: maxNav.toFixed(4),
@@ -491,11 +545,21 @@ export class RMFMCPServer {
               periodReturn: periodReturn ? `${periodReturn}%` : 'N/A',
               volatility: `${volatility}%`,
             },
-            timestamp: new Date().toISOString(),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        navHistory: navHistoryData,
+        statistics: {
+          minNav: minNav.toFixed(4),
+          maxNav: maxNav.toFixed(4),
+          avgNav: avgNav.toFixed(4),
+          periodReturn: periodReturn ? `${periodReturn}%` : 'N/A',
+          volatility: `${volatility}%`,
+        },
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
   }
 
   private async handleCompareFunds(args: any) {
@@ -521,52 +585,47 @@ export class RMFMCPServer {
 
     const textSummary = `Comparing ${funds.length} RMF funds: ${funds.map((f: RMFFundCSV) => f.symbol).join(', ')}`;
 
-    // Build comparison data
+    // Build comparison data with Apps SDK field names
     const comparison = funds.map((fund: RMFFundCSV) => {
       const data: any = {
-        symbol: fund.symbol,
-        fund_name: fund.fund_name,
-        amc: fund.amc,
+        proj_abbr_name: fund.symbol,
+        proj_name_en: fund.fund_name,
+        unique_id: fund.amc,
       };
 
       // Include data based on compareBy
       if (compareBy === 'all' || compareBy === 'performance') {
-        data.nav_value = fund.nav_value;
-        data.performance = {
-          ytd: fund.perf_ytd,
-          '3m': fund.perf_3m,
-          '6m': fund.perf_6m,
-          '1y': fund.perf_1y,
-          '3y': fund.perf_3y,
-          '5y': fund.perf_5y,
-          '10y': fund.perf_10y,
-        };
-        data.benchmark = fund.benchmark_name ? {
-          name: fund.benchmark_name,
-          ytd: fund.benchmark_ytd,
-          '1y': fund.benchmark_1y,
-          '3y': fund.benchmark_3y,
-          '5y': fund.benchmark_5y,
-        } : null;
+        data.last_val = fund.nav_value;
+        data.return_ytd = fund.perf_ytd;
+        data.return_3m = fund.perf_3m;
+        data.return_6m = fund.perf_6m;
+        data.return_1y = fund.perf_1y;
+        data.return_3y = fund.perf_3y;
+        data.return_5y = fund.perf_5y;
+        data.return_10y = fund.perf_10y;
+        data.benchmark_name = fund.benchmark_name;
+        data.benchmark_ytd = fund.benchmark_ytd;
+        data.benchmark_1y = fund.benchmark_1y;
+        data.benchmark_3y = fund.benchmark_3y;
+        data.benchmark_5y = fund.benchmark_5y;
       }
 
       if (compareBy === 'all' || compareBy === 'risk') {
-        data.risk_level = fund.risk_level;
-        data.fund_classification = fund.fund_classification;
+        data.risk_spectrum = fund.risk_level;
+        data.classification = fund.fund_classification;
         data.management_style = fund.management_style;
       }
 
       if (compareBy === 'all' || compareBy === 'fees') {
         data.fees = fund.fees_json;
-        data.investment_minimums = {
-          initial: fund.investment_min_initial,
-          additional: fund.investment_min_additional,
-        };
+        data.investment_min_initial = fund.investment_min_initial;
+        data.investment_min_additional = fund.investment_min_additional;
       }
 
       return data;
     });
 
+    // OpenAI Apps SDK compatible response format
     return {
       content: [
         {
@@ -579,11 +638,17 @@ export class RMFMCPServer {
             compareBy,
             fundCount: funds.length,
             funds: comparison,
-            timestamp: new Date().toISOString(),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-comparison',
+        funds: comparison,
+        compareBy,
+        fundCount: funds.length,
+        timestamp: new Date().toISOString(),
+      },
+    } as any;
   }
 
   getServer() {
