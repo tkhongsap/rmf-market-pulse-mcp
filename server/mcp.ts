@@ -2,20 +2,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { rmfDataService } from './services/rmfDataService';
 import { z } from 'zod';
 import type { RMFFundCSV } from '@shared/schema';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Setup paths for widget templates
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load widget templates for OpenAI Apps SDK
-const widgetTemplates: Record<string, string> = {
-  'fund-detail': fs.readFileSync(path.join(__dirname, 'widgets', 'fund-detail.html'), 'utf-8'),
-  'fund-list': fs.readFileSync(path.join(__dirname, 'widgets', 'fund-list.html'), 'utf-8'),
-  'fund-comparison': fs.readFileSync(path.join(__dirname, 'widgets', 'fund-comparison.html'), 'utf-8'),
-};
 
 export class RMFMCPServer {
   private server: McpServer;
@@ -162,7 +148,6 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
-        'openai/outputTemplate': 'ui://fund-list',
         funds: fundsData,
         page,
         pageSize,
@@ -227,7 +212,6 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
-        'openai/outputTemplate': 'ui://fund-list',
         funds: fundsData,
         page: 1,
         pageSize: args?.limit || 20,
@@ -281,7 +265,6 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
-        'openai/outputTemplate': 'ui://fund-detail',
         fundData: {
           proj_abbr_name: fund.symbol,
           proj_name_en: fund.fund_name,
@@ -438,7 +421,6 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
-        'openai/outputTemplate': 'ui://fund-list',
         funds: fundsData,
         page: 1,
         pageSize: limit,
@@ -642,7 +624,6 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
-        'openai/outputTemplate': 'ui://fund-comparison',
         funds: comparison,
         compareBy,
         fundCount: funds.length,

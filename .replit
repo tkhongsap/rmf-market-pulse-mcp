@@ -9,7 +9,7 @@ packages = ["copilot-cli"]
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["npm", "start"]
+run = ["node", "dist/index.js"]
 
 [[ports]]
 localPort = 5000
@@ -42,6 +42,10 @@ exposeLocalhost = true
 [[ports]]
 localPort = 42727
 externalPort = 3001
+
+[[ports]]
+localPort = 44373
+externalPort = 6800
 
 [[ports]]
 localPort = 45658
