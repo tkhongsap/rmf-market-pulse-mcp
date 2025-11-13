@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { rmfDataService } from './services/rmfDataService';
 import { z } from 'zod';
 import type { RMFFundCSV } from '@shared/schema';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 
 export class RMFMCPServer {
   private server: McpServer;
@@ -12,7 +14,30 @@ export class RMFMCPServer {
       version: '1.0.0',
     });
 
+    this.setupResources();
     this.setupTools();
+  }
+
+  private async loadWidget(widgetName: string): Promise<string> {
+    // Validate widget name to prevent path traversal
+    const validWidgets = ['fund-detail', 'fund-list', 'fund-comparison', 'performance-chart'];
+    if (!validWidgets.includes(widgetName)) {
+      throw new Error(`Invalid widget: ${widgetName}`);
+    }
+
+    try {
+      // Read HTML file from widgets directory
+      const widgetPath = join(process.cwd(), 'server', 'widgets', `${widgetName}.html`);
+      const html = await readFile(widgetPath, 'utf-8');
+      return html;
+    } catch (error) {
+      throw new Error(`Failed to load widget ${widgetName}: ${error}`);
+    }
+  }
+
+  private setupResources() {
+    // Resources setup not needed for inline widgets
+    // Widgets will be embedded directly in tool responses
   }
 
   private setupTools() {
@@ -114,6 +139,7 @@ export class RMFMCPServer {
       fund_classification: f.fund_classification,
     }));
 
+    // Return both text summary and structured data with widget metadata
     return {
       content: [
         {
@@ -130,11 +156,20 @@ export class RMFMCPServer {
               totalCount,
               totalPages: Math.ceil(totalCount / pageSize),
             },
-            timestamp: new Date().toISOString(),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
+        funds: fundsData,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages: Math.ceil(totalCount / pageSize),
+        },
+      },
+    } as any;
   }
 
   private async handleSearchRmfFunds(args: any) {
@@ -177,6 +212,7 @@ export class RMFMCPServer {
       fund_classification: f.fund_classification,
     }));
 
+    // Return both text summary and structured data with widget metadata
     return {
       content: [
         {
@@ -189,11 +225,20 @@ export class RMFMCPServer {
             funds: fundsData,
             totalCount,
             filters: args,
-            timestamp: new Date().toISOString(),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
+        funds: fundsData,
+        pagination: {
+          page: 1,
+          pageSize: args?.limit || 20,
+          totalCount,
+          totalPages: 1,
+        },
+      },
+    } as any;
   }
 
   private async handleGetRmfFundDetail(args: any) {
@@ -266,6 +311,25 @@ export class RMFMCPServer {
       timestamp: new Date().toISOString(),
     };
 
+    // Prepare widget data
+    const widgetData = {
+      symbol: fund.symbol,
+      fund_name: fund.fund_name,
+      amc: fund.amc,
+      nav_value: fund.nav_value,
+      nav_date: fund.nav_date,
+      risk_level: fund.risk_level,
+      fund_classification: fund.fund_classification,
+      management_style: fund.management_style,
+      perf_ytd: fund.perf_ytd,
+      perf_3m: fund.perf_3m,
+      perf_6m: fund.perf_6m,
+      perf_1y: fund.perf_1y,
+      perf_3y: fund.perf_3y,
+      perf_5y: fund.perf_5y,
+    };
+
+    // Return both text summary and structured data with widget metadata
     return {
       content: [
         {
@@ -277,7 +341,11 @@ export class RMFMCPServer {
           text: JSON.stringify(fundDetail, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-detail',
+        fundData: widgetData,
+      },
+    } as any;
   }
 
   private async handleGetRmfFundPerformance(args: any) {
@@ -376,6 +444,7 @@ export class RMFMCPServer {
       };
     });
 
+    // Return both text summary and structured data with widget metadata
     return {
       content: [
         {
@@ -390,11 +459,20 @@ export class RMFMCPServer {
             funds: fundsData,
             totalCount: topFunds.length,
             filters: { riskLevel },
-            timestamp: new Date().toISOString(),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
+        funds: fundsData,
+        pagination: {
+          page: 1,
+          pageSize: limit,
+          totalCount: topFunds.length,
+          totalPages: 1,
+        },
+      },
+    } as any;
   }
 
   private async handleGetRmfFundNavHistory(args: any) {
@@ -567,6 +645,7 @@ export class RMFMCPServer {
       return data;
     });
 
+    // Return both text summary and structured data with widget metadata
     return {
       content: [
         {
@@ -579,11 +658,15 @@ export class RMFMCPServer {
             compareBy,
             fundCount: funds.length,
             funds: comparison,
-            timestamp: new Date().toISOString(),
           }, null, 2),
         },
       ],
-    };
+      _meta: {
+        'openai/outputTemplate': 'ui://fund-comparison',
+        funds: comparison,
+        compareBy,
+      },
+    } as any;
   }
 
   getServer() {
