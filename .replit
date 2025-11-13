@@ -1,9 +1,9 @@
-modules = [ "web", "postgresql-16", "nodejs-22"]
+modules = ["nodejs-20", "python-3.12", "bash"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 packages = ["copilot-cli"]
 
 [deployment]
@@ -28,6 +28,10 @@ exposeLocalhost = true
 [[ports]]
 localPort = 33065
 externalPort = 3000
+
+[[ports]]
+localPort = 40979
+externalPort = 5173
 
 [[ports]]
 localPort = 42727
@@ -66,3 +70,6 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[agent]
+expertMode = true
