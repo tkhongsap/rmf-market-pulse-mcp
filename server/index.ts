@@ -22,9 +22,14 @@ import { createServer } from 'http';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { rmfMCPServer } from './mcp';
 import { rmfDataService } from './services/rmfDataService';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -47,6 +52,16 @@ app.use(cors(corsOptions));
 // Middleware
 app.use(express.json({ limit: '1mb' })); // Limit payload size
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+// OpenAI Apps SDK: Serve widget HTML files for ChatGPT
+// Use process.cwd() to ensure widgets are found in both dev and production
+app.use('/widgets', express.static(path.resolve(process.cwd(), 'server/widgets'), {
+  setHeaders: (res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow ChatGPT to load widgets
+  }
+}));
 
 // Request logging for MCP endpoint
 app.use((req, res, next) => {

@@ -148,6 +148,7 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
         funds: fundsData,
         page,
         pageSize,
@@ -212,6 +213,7 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
         funds: fundsData,
         page: 1,
         pageSize: args?.limit || 20,
@@ -265,6 +267,7 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
+        'openai/outputTemplate': 'ui://fund-detail',
         fundData: {
           proj_abbr_name: fund.symbol,
           proj_name_en: fund.fund_name,
@@ -421,6 +424,7 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
+        'openai/outputTemplate': 'ui://fund-list',
         funds: fundsData,
         page: 1,
         pageSize: limit,
@@ -531,6 +535,9 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
+        'openai/outputTemplate': 'ui://performance-chart',
+        fundCode,
+        fundName: fund.fund_name,
         navHistory: navHistoryData,
         statistics: {
           minNav: minNav.toFixed(4),
@@ -624,6 +631,7 @@ export class RMFMCPServer {
         },
       ],
       _meta: {
+        'openai/outputTemplate': 'ui://fund-comparison',
         funds: comparison,
         compareBy,
         fundCount: funds.length,
