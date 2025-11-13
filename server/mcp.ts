@@ -36,8 +36,56 @@ export class RMFMCPServer {
   }
 
   private setupResources() {
-    // Resources setup not needed for inline widgets
-    // Widgets will be embedded directly in tool responses
+    // Register HTML widgets as MCP resources with text/html+skybridge MIME type
+    // This is required by OpenAI Apps SDK for ChatGPT widget rendering
+
+    this.server.resource(
+      'fund-list-widget',
+      'widget://fund-list',
+      { mimeType: 'text/html+skybridge', description: 'Fund list widget for displaying paginated RMF funds' },
+      async () => {
+        const html = await this.loadWidget('fund-list');
+        return {
+          contents: [{ uri: 'widget://fund-list', mimeType: 'text/html+skybridge', text: html }]
+        };
+      }
+    );
+
+    this.server.resource(
+      'fund-detail-widget',
+      'widget://fund-detail',
+      { mimeType: 'text/html+skybridge', description: 'Fund detail widget for displaying single fund information' },
+      async () => {
+        const html = await this.loadWidget('fund-detail');
+        return {
+          contents: [{ uri: 'widget://fund-detail', mimeType: 'text/html+skybridge', text: html }]
+        };
+      }
+    );
+
+    this.server.resource(
+      'fund-comparison-widget',
+      'widget://fund-comparison',
+      { mimeType: 'text/html+skybridge', description: 'Fund comparison widget for side-by-side comparison' },
+      async () => {
+        const html = await this.loadWidget('fund-comparison');
+        return {
+          contents: [{ uri: 'widget://fund-comparison', mimeType: 'text/html+skybridge', text: html }]
+        };
+      }
+    );
+
+    this.server.resource(
+      'performance-chart-widget',
+      'widget://performance-chart',
+      { mimeType: 'text/html+skybridge', description: 'Performance chart widget for visualizing fund performance' },
+      async () => {
+        const html = await this.loadWidget('performance-chart');
+        return {
+          contents: [{ uri: 'widget://performance-chart', mimeType: 'text/html+skybridge', text: html }]
+        };
+      }
+    );
   }
 
   private setupTools() {
@@ -139,7 +187,7 @@ export class RMFMCPServer {
       fund_classification: f.fund_classification,
     }));
 
-    // Return both text summary and structured data with widget metadata
+    // Apps SDK compliant response with structuredContent and _meta fields
     return {
       content: [
         {
@@ -159,8 +207,17 @@ export class RMFMCPServer {
           }, null, 2),
         },
       ],
+      structuredContent: {
+        funds: fundsData,
+        pagination: {
+          page,
+          pageSize,
+          totalCount,
+          totalPages: Math.ceil(totalCount / pageSize),
+        },
+      },
       _meta: {
-        'openai/outputTemplate': 'ui://fund-list',
+        'openai/outputTemplate': 'fund-list-widget',
         funds: fundsData,
         pagination: {
           page,
@@ -212,7 +269,7 @@ export class RMFMCPServer {
       fund_classification: f.fund_classification,
     }));
 
-    // Return both text summary and structured data with widget metadata
+    // Apps SDK compliant response with structuredContent and _meta fields
     return {
       content: [
         {
@@ -228,8 +285,13 @@ export class RMFMCPServer {
           }, null, 2),
         },
       ],
+      structuredContent: {
+        funds: fundsData,
+        totalCount,
+        filters: args,
+      },
       _meta: {
-        'openai/outputTemplate': 'ui://fund-list',
+        'openai/outputTemplate': 'fund-list-widget',
         funds: fundsData,
         pagination: {
           page: 1,
@@ -329,7 +391,7 @@ export class RMFMCPServer {
       perf_5y: fund.perf_5y,
     };
 
-    // Return both text summary and structured data with widget metadata
+    // Apps SDK compliant response with structuredContent and _meta fields
     return {
       content: [
         {
@@ -341,8 +403,9 @@ export class RMFMCPServer {
           text: JSON.stringify(fundDetail, null, 2),
         },
       ],
+      structuredContent: fundDetail,
       _meta: {
-        'openai/outputTemplate': 'ui://fund-detail',
+        'openai/outputTemplate': 'fund-detail-widget',
         fundData: widgetData,
       },
     } as any;
@@ -444,7 +507,7 @@ export class RMFMCPServer {
       };
     });
 
-    // Return both text summary and structured data with widget metadata
+    // Apps SDK compliant response with structuredContent and _meta fields
     return {
       content: [
         {
@@ -462,8 +525,15 @@ export class RMFMCPServer {
           }, null, 2),
         },
       ],
+      structuredContent: {
+        period,
+        periodLabel: periodLabelText,
+        funds: fundsData,
+        totalCount: topFunds.length,
+        filters: { riskLevel },
+      },
       _meta: {
-        'openai/outputTemplate': 'ui://fund-list',
+        'openai/outputTemplate': 'fund-list-widget',
         funds: fundsData,
         pagination: {
           page: 1,
@@ -645,7 +715,7 @@ export class RMFMCPServer {
       return data;
     });
 
-    // Return both text summary and structured data with widget metadata
+    // Apps SDK compliant response with structuredContent and _meta fields
     return {
       content: [
         {
@@ -661,8 +731,13 @@ export class RMFMCPServer {
           }, null, 2),
         },
       ],
+      structuredContent: {
+        compareBy,
+        fundCount: funds.length,
+        funds: comparison,
+      },
       _meta: {
-        'openai/outputTemplate': 'ui://fund-comparison',
+        'openai/outputTemplate': 'fund-comparison-widget',
         funds: comparison,
         compareBy,
       },
