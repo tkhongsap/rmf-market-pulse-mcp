@@ -61,19 +61,289 @@ app.use((req, res, next) => {
 });
 
 /**
- * Health check endpoint
- * Returns server status and fund data statistics
+ * Health check endpoint - Beautiful HTML status dashboard
  */
-app.get('/healthz', (_req, res) => {
-  res.json({
-    status: 'ok',
-    server: 'Thai RMF Market Pulse MCP Server',
-    version: '1.0.0',
-    protocol: 'Model Context Protocol (MCP)',
-    fundsLoaded: rmfDataService.getTotalCount(),
-    timestamp: new Date().toISOString(),
-  });
-});
+const healthHandler = (_req: express.Request, res: express.Response) => {
+  const totalFunds = rmfDataService.getTotalCount();
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage();
+  const uptimeHours = Math.floor(uptime / 3600);
+  const uptimeMinutes = Math.floor((uptime % 3600) / 60);
+  const uptimeSeconds = Math.floor(uptime % 60);
+  
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="30">
+  <title>Health Status - Thai RMF Market Pulse</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      min-height: 100vh;
+      color: #1a202c;
+      padding: 20px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+      animation: fadeInDown 0.8s ease;
+    }
+    .header h1 {
+      font-size: 42px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.2);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .metric-card {
+      background: white;
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInUp 0.8s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+    }
+    .metric-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    .metric-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    .metric-value {
+      font-size: 36px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .metric-label {
+      font-size: 14px;
+      color: #718096;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .info-card {
+      background: white;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 24px;
+      animation: fadeInUp 0.8s ease 0.2s both;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label {
+      color: #4b5563;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-value {
+      color: #1f2937;
+      font-weight: 700;
+      font-family: 'Monaco', monospace;
+      font-size: 14px;
+    }
+    .success { color: #10b981; }
+    .footer {
+      text-align: center;
+      color: white;
+      margin-top: 40px;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .auto-refresh {
+      background: rgba(255,255,255,0.15);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-top: 12px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Server Health Status</h1>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        All Systems Operational
+      </div>
+      <div class="auto-refresh">🔄 Auto-refresh every 30 seconds</div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon">✅</div>
+        <div class="metric-value">100%</div>
+        <div class="metric-label">Healthy</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-icon">📊</div>
+        <div class="metric-value">${totalFunds}</div>
+        <div class="metric-label">RMF Funds</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-icon">🚀</div>
+        <div class="metric-value">${uptimeHours}h ${uptimeMinutes}m</div>
+        <div class="metric-label">Uptime</div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-icon">💾</div>
+        <div class="metric-value">${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB</div>
+        <div class="metric-label">Memory Used</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2 style="margin-bottom: 24px; color: #1f2937; font-size: 24px;">📋 System Information</h2>
+      
+      <div class="info-row">
+        <span class="info-label">🟢 Status</span>
+        <span class="info-value success">OPERATIONAL</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">🏷️ Server Name</span>
+        <span class="info-value">Thai RMF Market Pulse MCP Server</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">📦 Version</span>
+        <span class="info-value">v1.0.0</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">🔌 Protocol</span>
+        <span class="info-value">Model Context Protocol (MCP)</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">🛠️ MCP Tools</span>
+        <span class="info-value">6 tools available</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">💿 Data Loaded</span>
+        <span class="info-value">${totalFunds} RMF Funds</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">⏱️ Uptime</span>
+        <span class="info-value">${uptimeHours}h ${uptimeMinutes}m ${uptimeSeconds}s</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">🧠 Heap Memory</span>
+        <span class="info-value">${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">🕐 Timestamp</span>
+        <span class="info-value">${new Date().toISOString()}</span>
+      </div>
+      
+      <div class="info-row">
+        <span class="info-label">🌍 Node.js Version</span>
+        <span class="info-value">${process.version}</span>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2 style="margin-bottom: 20px; color: #1f2937; font-size: 24px;">🔗 Quick Links</h2>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="/mcp" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s;">
+          📡 MCP Endpoint
+        </a>
+        <a href="/" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s;">
+          ℹ️ Server Info
+        </a>
+        <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank" style="display: inline-block; padding: 12px 24px; background: #1f2937; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s;">
+          📚 Documentation
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Thai RMF Market Pulse MCP Server | Monitoring Dashboard</p>
+      <p style="margin-top: 8px; font-size: 12px;">Page auto-refreshes every 30 seconds for real-time status</p>
+    </div>
+  </div>
+</body>
+</html>`);
+};
+
+app.get('/healthz', healthHandler);
+app.get('/health', healthHandler);
 
 /**
  * Security: Rate limiting for MCP endpoint
