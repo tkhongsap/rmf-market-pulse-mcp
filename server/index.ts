@@ -61,7 +61,7 @@ app.use((req, res, next) => {
 });
 
 /**
- * Health check endpoint - Beautiful HTML status dashboard
+ * Health check endpoint - Clean status dashboard
  */
 const healthHandler = (_req: express.Request, res: express.Response) => {
   const totalFunds = rmfDataService.getTotalCount();
@@ -80,262 +80,223 @@ const healthHandler = (_req: express.Request, res: express.Response) => {
   <title>Health Status - Thai RMF Market Pulse</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      min-height: 100vh;
-      color: #1a202c;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f8f9fa;
+      color: #1f2937;
+      line-height: 1.6;
       padding: 20px;
     }
-    .container { max-width: 1000px; margin: 0 auto; }
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 40px;
-      animation: fadeInDown 0.8s ease;
-    }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+    .header { margin-bottom: 32px; }
     .header h1 {
-      font-size: 42px;
-      font-weight: 800;
-      margin-bottom: 12px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.2);
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-size: 18px;
+      font-size: 28px;
       font-weight: 700;
-      margin-top: 16px;
-      backdrop-filter: blur(10px);
+      color: #111827;
+      margin-bottom: 8px;
     }
-    .status-dot {
-      width: 12px;
-      height: 12px;
+    .header p {
+      font-size: 15px;
+      color: #6b7280;
+    }
+    .badge {
+      display: inline-block;
       background: #10b981;
-      border-radius: 50%;
-      animation: pulse 2s infinite;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 12px;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.1); }
+    .auto-refresh {
+      display: inline-block;
+      background: #e5e7eb;
+      color: #374151;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 8px;
     }
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
     }
     .metric-card {
       background: white;
-      padding: 28px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
       text-align: center;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      animation: fadeInUp 0.8s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .metric-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
-    }
-    .metric-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-    }
-    .metric-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
     }
     .metric-value {
-      font-size: 36px;
-      font-weight: 800;
-      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
+      font-size: 32px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 4px;
     }
     .metric-label {
       font-size: 14px;
-      color: #718096;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: #6b7280;
+      font-weight: 500;
     }
-    .info-card {
+    .section {
       background: white;
+      border-radius: 12px;
       padding: 32px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
       margin-bottom: 24px;
-      animation: fadeInUp 0.8s ease 0.2s both;
+      border: 1px solid #e5e7eb;
     }
-    .info-row {
+    .section h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 20px;
+    }
+    .info-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .info-item {
       display: flex;
       justify-content: space-between;
-      padding: 16px 0;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .info-row:last-child { border-bottom: none; }
-    .info-label {
-      color: #4b5563;
-      font-weight: 600;
-      display: flex;
       align-items: center;
-      gap: 8px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .info-item:last-child { border-bottom: none; }
+    .info-label {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: 500;
     }
     .info-value {
-      color: #1f2937;
-      font-weight: 700;
-      font-family: 'Monaco', monospace;
       font-size: 14px;
+      color: #111827;
+      font-weight: 600;
+      font-family: 'Monaco', monospace;
     }
-    .success { color: #10b981; }
+    .status-online { color: #10b981; }
+    .links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .link-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #111827;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .link-btn:hover { background: #374151; }
+    .link-btn.secondary {
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .link-btn.secondary:hover { background: #e5e7eb; }
     .footer {
       text-align: center;
-      color: white;
-      margin-top: 40px;
-      opacity: 0.9;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
       font-size: 14px;
-    }
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .auto-refresh {
-      background: rgba(255,255,255,0.15);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      margin-top: 12px;
-      display: inline-block;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>⚡ Server Health Status</h1>
-      <div class="status-badge">
-        <span class="status-dot"></span>
-        All Systems Operational
-      </div>
-      <div class="auto-refresh">🔄 Auto-refresh every 30 seconds</div>
+      <h1>Health Status</h1>
+      <p>Real-time server monitoring dashboard</p>
+      <span class="badge">✓ Operational</span>
+      <span class="auto-refresh">Auto-refresh: 30s</span>
     </div>
 
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="metric-icon">✅</div>
         <div class="metric-value">100%</div>
         <div class="metric-label">Healthy</div>
       </div>
-      
       <div class="metric-card">
-        <div class="metric-icon">📊</div>
         <div class="metric-value">${totalFunds}</div>
-        <div class="metric-label">RMF Funds</div>
+        <div class="metric-label">RMF Funds Loaded</div>
       </div>
-      
       <div class="metric-card">
-        <div class="metric-icon">🚀</div>
         <div class="metric-value">${uptimeHours}h ${uptimeMinutes}m</div>
         <div class="metric-label">Uptime</div>
       </div>
-      
       <div class="metric-card">
-        <div class="metric-icon">💾</div>
         <div class="metric-value">${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB</div>
         <div class="metric-label">Memory Used</div>
       </div>
     </div>
 
-    <div class="info-card">
-      <h2 style="margin-bottom: 24px; color: #1f2937; font-size: 24px;">📋 System Information</h2>
-      
-      <div class="info-row">
-        <span class="info-label">🟢 Status</span>
-        <span class="info-value success">OPERATIONAL</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">🏷️ Server Name</span>
-        <span class="info-value">Thai RMF Market Pulse MCP Server</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">📦 Version</span>
-        <span class="info-value">v1.0.0</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">🔌 Protocol</span>
-        <span class="info-value">Model Context Protocol (MCP)</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">🛠️ MCP Tools</span>
-        <span class="info-value">6 tools available</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">💿 Data Loaded</span>
-        <span class="info-value">${totalFunds} RMF Funds</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">⏱️ Uptime</span>
-        <span class="info-value">${uptimeHours}h ${uptimeMinutes}m ${uptimeSeconds}s</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">🧠 Heap Memory</span>
-        <span class="info-value">${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">🕐 Timestamp</span>
-        <span class="info-value">${new Date().toISOString()}</span>
-      </div>
-      
-      <div class="info-row">
-        <span class="info-label">🌍 Node.js Version</span>
-        <span class="info-value">${process.version}</span>
+    <div class="section">
+      <h2>System Information</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Status</span>
+          <span class="info-value status-online">OPERATIONAL</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Server Name</span>
+          <span class="info-value">Thai RMF Market Pulse MCP Server</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Version</span>
+          <span class="info-value">v1.0.0</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Protocol</span>
+          <span class="info-value">Model Context Protocol (MCP)</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">MCP Tools</span>
+          <span class="info-value">6 tools available</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Data Loaded</span>
+          <span class="info-value">${totalFunds} RMF Funds</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Uptime</span>
+          <span class="info-value">${uptimeHours}h ${uptimeMinutes}m ${uptimeSeconds}s</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Heap Memory</span>
+          <span class="info-value">${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Timestamp</span>
+          <span class="info-value">${new Date().toISOString()}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Node.js Version</span>
+          <span class="info-value">${process.version}</span>
+        </div>
       </div>
     </div>
 
-    <div class="info-card">
-      <h2 style="margin-bottom: 20px; color: #1f2937; font-size: 24px;">🔗 Quick Links</h2>
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <a href="/mcp" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s;">
-          📡 MCP Endpoint
-        </a>
-        <a href="/" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s;">
-          ℹ️ Server Info
-        </a>
-        <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank" style="display: inline-block; padding: 12px 24px; background: #1f2937; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: transform 0.2s;">
-          📚 Documentation
-        </a>
+    <div class="section">
+      <h2>Quick Links</h2>
+      <div class="links">
+        <a href="/mcp" class="link-btn">MCP Documentation</a>
+        <a href="/" class="link-btn secondary">Server Info</a>
+        <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank" class="link-btn secondary">GitHub</a>
       </div>
     </div>
 
     <div class="footer">
       <p>Thai RMF Market Pulse MCP Server | Monitoring Dashboard</p>
-      <p style="margin-top: 8px; font-size: 12px;">Page auto-refreshes every 30 seconds for real-time status</p>
     </div>
   </div>
 </body>
@@ -377,275 +338,222 @@ app.get('/mcp', (_req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thai RMF Market Pulse - MCP Server</title>
+  <title>MCP Documentation - Thai RMF Market Pulse</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      color: #1a202c;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f8f9fa;
+      color: #1f2937;
+      line-height: 1.6;
     }
-    .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 60px;
-      animation: fadeInDown 0.8s ease;
-    }
+    .container { max-width: 900px; margin: 0 auto; padding: 60px 24px; }
+    .header { margin-bottom: 48px; }
     .header h1 {
-      font-size: 48px;
-      font-weight: 800;
-      margin-bottom: 16px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .header .subtitle {
-      font-size: 20px;
-      opacity: 0.9;
-      font-weight: 300;
-    }
-    .badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.2);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-      margin-top: 20px;
-      backdrop-filter: blur(10px);
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 24px;
-      margin-bottom: 40px;
-    }
-    .stat-card {
-      background: white;
-      padding: 32px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      text-align: center;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      animation: fadeInUp 0.8s ease;
-    }
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-    }
-    .stat-number {
-      font-size: 48px;
-      font-weight: 800;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
-    }
-    .stat-label {
-      font-size: 16px;
-      color: #718096;
-      font-weight: 600;
-    }
-    .content-card {
-      background: white;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-      margin-bottom: 32px;
-      animation: fadeInUp 0.8s ease 0.2s both;
-    }
-    h2 {
       font-size: 32px;
       font-weight: 700;
-      margin-bottom: 24px;
-      color: #2d3748;
-    }
-    h3 {
-      font-size: 20px;
-      font-weight: 600;
-      margin: 24px 0 16px 0;
-      color: #4a5568;
-    }
-    .tools-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px;
-      margin-top: 24px;
-    }
-    .tool-item {
-      padding: 20px;
-      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-      border-radius: 12px;
-      border-left: 4px solid #667eea;
-      transition: all 0.3s ease;
-    }
-    .tool-item:hover {
-      border-left-color: #764ba2;
-      transform: translateX(5px);
-    }
-    .tool-name {
-      font-weight: 700;
-      color: #2d3748;
-      font-size: 16px;
+      color: #111827;
       margin-bottom: 8px;
     }
-    .tool-desc {
-      color: #718096;
+    .header p {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+    .stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .stat-badge {
+      padding: 6px 14px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #374151;
+      font-weight: 600;
+    }
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      border: 1px solid #e5e7eb;
+    }
+    .section h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 16px;
+    }
+    .section p {
+      font-size: 15px;
+      color: #6b7280;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    .tools-list {
+      display: grid;
+      gap: 12px;
+    }
+    .tool-item {
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border-left: 3px solid #111827;
+    }
+    .tool-name {
       font-size: 14px;
-      line-height: 1.6;
+      font-weight: 600;
+      color: #111827;
+      font-family: 'Monaco', monospace;
+      margin-bottom: 4px;
+    }
+    .tool-desc {
+      font-size: 14px;
+      color: #6b7280;
     }
     .code-block {
       background: #1a202c;
-      color: #e2e8f0;
-      padding: 24px;
-      border-radius: 12px;
+      color: #e5e7eb;
+      padding: 20px;
+      border-radius: 8px;
       overflow-x: auto;
       font-family: 'Monaco', 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.8;
+      font-size: 13px;
+      line-height: 1.7;
       margin: 16px 0;
-      position: relative;
     }
-    .code-block::before {
-      content: attr(data-lang);
-      position: absolute;
-      top: 8px;
-      right: 12px;
-      font-size: 11px;
-      color: #a0aec0;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .endpoint-badge {
+    .method-badge {
       display: inline-block;
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 700;
-      margin-right: 8px;
+      font-family: 'Monaco', monospace;
+      margin-bottom: 12px;
     }
-    .post-badge { background: #48bb78; color: white; }
-    .get-badge { background: #4299e1; color: white; }
+    .post { background: #dcfce7; color: #166534; }
+    .example-section {
+      margin-top: 24px;
+    }
+    .example-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #374151;
+      margin: 20px 0 12px 0;
+    }
+    .links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .link-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #111827;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .link-btn:hover { background: #374151; }
+    .link-btn.secondary {
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .link-btn.secondary:hover { background: #e5e7eb; }
     .footer {
       text-align: center;
-      color: white;
-      margin-top: 60px;
-      padding: 20px;
-      opacity: 0.9;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
+      font-size: 14px;
     }
-    .footer a {
-      color: white;
-      text-decoration: underline;
-      font-weight: 600;
-    }
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .highlight { color: #667eea; font-weight: 600; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🇹🇭 Thai RMF Market Pulse</h1>
-      <p class="subtitle">Model Context Protocol Server for Thai Retirement Mutual Funds</p>
-      <div class="badge">✨ MCP Protocol v1.0 | ${totalFunds} RMF Funds Loaded</div>
-    </div>
-
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-number">${totalFunds}</div>
-        <div class="stat-label">RMF Funds</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">6</div>
-        <div class="stat-label">MCP Tools</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">100%</div>
-        <div class="stat-label">Real-Time Data</div>
+      <h1>MCP Documentation</h1>
+      <p>Model Context Protocol Server for Thai Retirement Mutual Funds</p>
+      <div class="stats">
+        <span class="stat-badge">${totalFunds} RMF Funds</span>
+        <span class="stat-badge">6 MCP Tools</span>
+        <span class="stat-badge">Real-Time Data</span>
       </div>
     </div>
 
-    <div class="content-card">
-      <h2>📡 MCP Endpoint</h2>
-      <p style="color: #718096; margin-bottom: 24px; font-size: 16px; line-height: 1.8;">
-        This server implements the <span class="highlight">Model Context Protocol (MCP)</span> for querying Thai Retirement Mutual Fund (RMF) data. 
-        Send JSON-RPC 2.0 requests to interact with ${totalFunds} funds and access comprehensive market analytics.
-      </p>
-      
-      <h3><span class="post-badge">POST</span> /mcp</h3>
-      <div class="code-block" data-lang="bash">curl -X POST https://rmf-market-pulse-mcp-tkhongsap.replit.app/mcp \\
+    <div class="section">
+      <h2>API Endpoint</h2>
+      <p>Send JSON-RPC 2.0 requests to query ${totalFunds} Thai RMF funds with comprehensive market data.</p>
+      <span class="method-badge post">POST</span>
+      <span style="font-family: Monaco; font-size: 14px; color: #6b7280;">/mcp</span>
+      <div class="code-block">curl -X POST https://rmf-market-pulse-mcp-tkhongsap.replit.app/mcp \\
   -H "Content-Type: application/json" \\
-  -H "Accept: application/json, text/event-stream" \\
   -d '{
     "jsonrpc": "2.0",
-    "id": 1,
     "method": "tools/call",
     "params": {
       "name": "get_rmf_fund_performance",
       "arguments": {"period": "ytd", "limit": 5}
-    }
+    },
+    "id": 1
   }'</div>
     </div>
 
-    <div class="content-card">
-      <h2>🛠️ Available MCP Tools</h2>
-      <p style="color: #718096; margin-bottom: 24px; font-size: 16px;">
-        Query the server using these 6 powerful tools via the MCP protocol:
-      </p>
-      
-      <div class="tools-grid">
+    <div class="section">
+      <h2>Available MCP Tools</h2>
+      <p>Query the server using these 6 tools:</p>
+      <div class="tools-list">
         <div class="tool-item">
-          <div class="tool-name">📋 get_rmf_funds</div>
-          <div class="tool-desc">List all RMF funds with pagination and flexible sorting options</div>
+          <div class="tool-name">get_rmf_funds</div>
+          <div class="tool-desc">List all RMF funds with pagination and sorting</div>
         </div>
-        
         <div class="tool-item">
-          <div class="tool-name">🔍 search_rmf_funds</div>
-          <div class="tool-desc">Search and filter funds by name, AMC, risk level, category, and performance</div>
+          <div class="tool-name">search_rmf_funds</div>
+          <div class="tool-desc">Search and filter funds by name, AMC, risk level, and performance</div>
         </div>
-        
         <div class="tool-item">
-          <div class="tool-name">📊 get_rmf_fund_detail</div>
-          <div class="tool-desc">Get comprehensive details for a specific fund including NAV, fees, and holdings</div>
+          <div class="tool-name">get_rmf_fund_detail</div>
+          <div class="tool-desc">Get detailed fund information including NAV, fees, and holdings</div>
         </div>
-        
         <div class="tool-item">
-          <div class="tool-name">🏆 get_rmf_fund_performance</div>
-          <div class="tool-desc">Top performing funds by period (YTD, 3M, 1Y, 3Y, 5Y, 10Y) with benchmarks</div>
+          <div class="tool-name">get_rmf_fund_performance</div>
+          <div class="tool-desc">Top performing funds by period (YTD, 3M, 1Y, 3Y, 5Y, 10Y)</div>
         </div>
-        
         <div class="tool-item">
-          <div class="tool-name">📈 get_rmf_fund_nav_history</div>
-          <div class="tool-desc">Historical NAV data with volatility analysis and trend indicators</div>
+          <div class="tool-name">get_rmf_fund_nav_history</div>
+          <div class="tool-desc">Historical NAV data with volatility and trend analysis</div>
         </div>
-        
         <div class="tool-item">
-          <div class="tool-name">⚖️ compare_rmf_funds</div>
-          <div class="tool-desc">Side-by-side comparison of 2-5 funds across performance, risk, and fees</div>
+          <div class="tool-name">compare_rmf_funds</div>
+          <div class="tool-desc">Compare 2-5 funds side-by-side across metrics</div>
         </div>
       </div>
     </div>
 
-    <div class="content-card">
-      <h2>📚 Quick Start Examples</h2>
+    <div class="section">
+      <h2>Example API Calls</h2>
       
-      <h3>1️⃣ List all available tools</h3>
-      <div class="code-block" data-lang="json">{
+      <div class="example-section">
+        <div class="example-title">List all available tools</div>
+        <div class="code-block">{
   "jsonrpc": "2.0",
   "method": "tools/list",
   "id": 1
 }</div>
+      </div>
 
-      <h3>2️⃣ Find gold-related RMF funds</h3>
-      <div class="code-block" data-lang="json">{
+      <div class="example-section">
+        <div class="example-title">Find gold-related RMF funds</div>
+        <div class="code-block">{
   "jsonrpc": "2.0",
   "method": "tools/call",
   "params": {
@@ -657,9 +565,11 @@ app.get('/mcp', (_req, res) => {
   },
   "id": 2
 }</div>
+      </div>
 
-      <h3>3️⃣ Get low-risk funds with best YTD returns</h3>
-      <div class="code-block" data-lang="json">{
+      <div class="example-section">
+        <div class="example-title">Get low-risk funds with best YTD returns</div>
+        <div class="code-block">{
   "jsonrpc": "2.0",
   "method": "tools/call",
   "params": {
@@ -673,20 +583,20 @@ app.get('/mcp', (_req, res) => {
   },
   "id": 3
 }</div>
+      </div>
     </div>
 
-    <div class="content-card">
-      <h2>🔗 Additional Endpoints</h2>
-      <p style="margin-bottom: 16px;"><span class="get-badge">GET</span> <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px;">/</code> - Server information and health status</p>
-      <p><span class="get-badge">GET</span> <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px;">/healthz</code> - Health check endpoint for monitoring</p>
+    <div class="section">
+      <h2>Quick Links</h2>
+      <div class="links">
+        <a href="/" class="link-btn">Server Info</a>
+        <a href="/health" class="link-btn secondary">Health Status</a>
+        <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank" class="link-btn secondary">GitHub</a>
+      </div>
     </div>
 
     <div class="footer">
-      <p>
-        Built with ❤️ for Thai investors | 
-        <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank">View on GitHub</a> | 
-        Powered by Model Context Protocol
-      </p>
+      <p>Thai RMF Market Pulse MCP Server | Built for Thai Investors</p>
     </div>
   </div>
 </body>
@@ -729,32 +639,226 @@ app.post('/mcp', mcpLimiter, async (req, res) => {
 });
 
 /**
- * Root endpoint - Server information
+ * Root endpoint - Server information with minimalist React-style design
  */
 app.get('/', (_req, res) => {
-  res.json({
-    name: 'Thai RMF Market Pulse MCP Server',
-    version: '1.0.0',
-    description: 'MCP server providing Thai Retirement Mutual Fund (RMF) market data',
-    protocol: 'Model Context Protocol (MCP)',
-    endpoint: {
-      mcp: 'POST /mcp',
-      health: 'GET /healthz',
-    },
-    tools: [
-      'get_rmf_funds',
-      'search_rmf_funds',
-      'get_rmf_fund_detail',
-      'get_rmf_fund_performance',
-      'get_rmf_fund_nav_history',
-      'compare_rmf_funds',
-    ],
-    dataSource: {
-      funds: rmfDataService.getTotalCount(),
-      lastUpdated: new Date().toISOString(),
-    },
-    documentation: 'https://github.com/tkhongsap/rmf-market-pulse-mcp',
-  });
+  const totalFunds = rmfDataService.getTotalCount();
+  
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thai RMF Market Pulse MCP Server</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #f8f9fa;
+      color: #1f2937;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 60px 24px; }
+    .header { margin-bottom: 48px; }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+    .header p {
+      font-size: 16px;
+      color: #6b7280;
+    }
+    .badge {
+      display: inline-block;
+      background: #10b981;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      border: 1px solid #e5e7eb;
+    }
+    .section h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 20px;
+    }
+    .info-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .info-item:last-child { border-bottom: none; }
+    .info-label {
+      font-size: 14px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    .info-value {
+      font-size: 14px;
+      color: #111827;
+      font-weight: 600;
+      font-family: 'Monaco', monospace;
+    }
+    .tools-list {
+      display: grid;
+      gap: 8px;
+    }
+    .tool-item {
+      padding: 12px 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #374151;
+      font-family: 'Monaco', monospace;
+    }
+    .endpoints {
+      display: grid;
+      gap: 12px;
+    }
+    .endpoint-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .method {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'Monaco', monospace;
+    }
+    .get { background: #dbeafe; color: #1e40af; }
+    .post { background: #d1fae5; color: #065f46; }
+    .path {
+      font-family: 'Monaco', monospace;
+      font-size: 14px;
+      color: #374151;
+    }
+    .links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .link-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #111827;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .link-btn:hover { background: #374151; }
+    .link-btn.secondary {
+      background: #f3f4f6;
+      color: #111827;
+    }
+    .link-btn.secondary:hover { background: #e5e7eb; }
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Thai RMF Market Pulse</h1>
+      <p>Model Context Protocol Server for Thai Retirement Mutual Funds</p>
+      <span class="badge">✓ Online</span>
+    </div>
+
+    <div class="section">
+      <h2>Server Information</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Version</span>
+          <span class="info-value">v1.0.0</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Protocol</span>
+          <span class="info-value">Model Context Protocol (MCP)</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">RMF Funds Loaded</span>
+          <span class="info-value">${totalFunds} funds</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Last Updated</span>
+          <span class="info-value">${new Date().toISOString().split('T')[0]}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>API Endpoints</h2>
+      <div class="endpoints">
+        <div class="endpoint-item">
+          <span class="method post">POST</span>
+          <span class="path">/mcp</span>
+        </div>
+        <div class="endpoint-item">
+          <span class="method get">GET</span>
+          <span class="path">/health</span>
+        </div>
+        <div class="endpoint-item">
+          <span class="method get">GET</span>
+          <span class="path">/healthz</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Available MCP Tools (6)</h2>
+      <div class="tools-list">
+        <div class="tool-item">get_rmf_funds</div>
+        <div class="tool-item">search_rmf_funds</div>
+        <div class="tool-item">get_rmf_fund_detail</div>
+        <div class="tool-item">get_rmf_fund_performance</div>
+        <div class="tool-item">get_rmf_fund_nav_history</div>
+        <div class="tool-item">compare_rmf_funds</div>
+      </div>
+    </div>
+
+    <div class="links">
+      <a href="/mcp" class="link-btn">View MCP Documentation</a>
+      <a href="/health" class="link-btn secondary">Health Status</a>
+      <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank" class="link-btn secondary">GitHub</a>
+    </div>
+
+    <div class="footer">
+      <p>Thai RMF Market Pulse MCP Server | Built for Thai Investors</p>
+    </div>
+  </div>
+</body>
+</html>`);
 });
 
 /**
