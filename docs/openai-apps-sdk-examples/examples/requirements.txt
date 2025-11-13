@@ -1,0 +1,28 @@
+# Python MCP Server Dependencies
+# For use with FastAPI and the MCP SDK
+
+# MCP SDK with FastAPI support
+# IMPORTANT: Install 'mcp' NOT 'modelcontextprotocol'
+# If you have 'modelcontextprotocol' installed, uninstall it first:
+#   pip uninstall modelcontextprotocol
+mcp[fastapi]>=0.5.0
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Data Validation
+pydantic>=2.5.0
+
+# CORS Support
+python-multipart>=0.0.6
+
+# Optional: Data Processing
+# pandas>=2.2.0
+# numpy>=1.26.0
+
+# Optional: Development Tools
+# pytest>=7.4.0
+# black>=24.1.0
+# mypy>=1.8.0
+# ruff>=0.1.0
