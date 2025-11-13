@@ -25,6 +25,12 @@ import rateLimit from 'express-rate-limit';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { rmfMCPServer } from './mcp';
 import { rmfDataService } from './services/rmfDataService';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Setup paths for serving widget files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -47,6 +53,14 @@ app.use(cors(corsOptions));
 // Middleware
 app.use(express.json({ limit: '1mb' })); // Limit payload size
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+// Serve widget files for OpenAI Apps SDK
+app.use('/widgets', express.static(path.join(__dirname, 'widgets'), {
+  setHeaders: (res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache
+  }
+}));
 
 // Request logging for MCP endpoint
 app.use((req, res, next) => {
