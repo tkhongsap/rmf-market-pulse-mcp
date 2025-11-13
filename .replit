@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "python-3.12", "bash"]
+modules = [ "python-3.12", "bash", "nodejs-22"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -42,10 +42,6 @@ exposeLocalhost = true
 [[ports]]
 localPort = 42727
 externalPort = 3001
-
-[[ports]]
-localPort = 44373
-externalPort = 6800
 
 [[ports]]
 localPort = 45658
