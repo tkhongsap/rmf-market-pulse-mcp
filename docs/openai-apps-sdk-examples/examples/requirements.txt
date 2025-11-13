@@ -1,0 +1,21 @@
+# Pizzaz MCP Server (Python) - Dependencies
+#
+# Install with: pip install -r requirements.txt
+#
+# Note: Make sure to install the correct 'mcp' package with FastAPI support.
+# There is an unrelated 'modelcontextprotocol' package on PyPI - do not use that.
+
+# FastAPI - Modern web framework for building APIs
+fastapi>=0.115.0
+
+# MCP SDK with FastAPI integration
+# Use mcp[fastapi] to include FastAPI extras
+mcp[fastapi]>=0.1.0
+
+# Uvicorn - ASGI server for running FastAPI
+uvicorn>=0.30.0
+
+# Optional: For enhanced development experience
+# pydantic>=2.0.0  # Already included with FastAPI
+# python-multipart>=0.0.9  # For form data parsing
+# python-dotenv>=1.0.0  # For environment variable management
