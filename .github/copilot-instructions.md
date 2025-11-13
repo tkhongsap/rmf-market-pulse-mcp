@@ -1,261 +1,391 @@
-# GitHub Copilot Instructions for Thai RMF Market Pulse
+# GitHub Copilot Instructions - Thai RMF Market Pulse MCP Server
 
 ## Project Overview
 
-This is a **full-stack TypeScript application** for tracking Thai Retirement Mutual Funds (RMF) with real-time NAV data. The app helps Thai investors discover, compare, and track RMF funds, particularly during tax season (November-December). It's designed to integrate with ChatGPT as an MCP (Model Context Protocol) widget.
+This is a **standalone Model Context Protocol (MCP) server** providing Thai Retirement Mutual Fund (RMF) market data. The server exposes 6 MCP tools to query 403 RMF funds with comprehensive market data including NAV, performance metrics, and historical data.
 
-### Key Features
-- Track 410+ Thai RMF funds with real-time NAV data from Thailand SEC API
-- Auto-refresh every 5 minutes
-- Search, filter, and compare funds
-- Multiple view modes (card/table)
-- Dark/light theme support
-- MCP protocol support for ChatGPT integration
+**Type:** Pure MCP server (no frontend UI)  
+**Protocol:** Model Context Protocol v1.0  
+**Runtime:** Node.js 20+  
+**Language:** TypeScript 5.6 (ESM only)
 
-## Tech Stack
+### Tech Stack
+- **Express 4.21** - HTTP server with MCP endpoint at POST /mcp
+- **MCP SDK 1.21.1** - @modelcontextprotocol/sdk for JSON-RPC 2.0
+- **Zod 3.25** - Schema validation for all data types
+- **esbuild 0.25** - Production bundling (54KB output)
+- **tsx 4.20** - TypeScript execution for dev/test
+- **Security:** Helmet, CORS, rate limiting (100 req/15min)
 
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for build tooling
-- **Wouter** for routing (not React Router)
-- **TanStack Query** for server state management
-- **Tailwind CSS** with **Radix UI** components
-- **Recharts** for data visualization
+### Data Source
+- CSV file (`docs/rmf-funds-consolidated.csv`) - 403 fund records, ~150KB
+- JSON files (`data/rmf-funds/*.json`) - 403 individual fund details
+- No database - All data loaded into memory at startup
+- Data service: `server/services/rmfDataService.ts`
 
-### Backend
-- **Express** server with TypeScript
-- **Drizzle ORM** with PostgreSQL
-- **Zod** for schema validation
-- **Thailand SEC API** integration for fund data
+---
 
-### Database
-- **PostgreSQL** with Drizzle ORM
-- Schema defined in `shared/schema.ts`
+## Build & Validation - CRITICAL SEQUENCE
 
-## Code Style Guidelines
+**ALWAYS follow this exact order. Do not skip steps.**
 
-### General TypeScript
-- Use **TypeScript** for all code files
-- Use **ES modules** (`import/export`, not `require`)
-- Enable strict mode TypeScript checking
-- Prefer `const` over `let`, avoid `var`
-- Use explicit return types for functions when not obvious
+### 1. Type Check (ALWAYS FIRST)
+```bash
+npm run check
+```
+- Uses `tsc --noEmit` (no files generated)
+- **MUST pass with zero errors before any commit**
+- Fast (~2 seconds)
+- Catches type errors in server/, shared/, tests/
 
-### Frontend Patterns
-- Use functional components with hooks (no class components)
-- Use TanStack Query for API calls (`useQuery`, `useMutation`)
-- Use Wouter for navigation (`useRoute`, `useLocation`)
-- Follow Radix UI patterns for accessible components
-- Use `clsx` and `tailwind-merge` for conditional styling
+### 2. Production Build
+```bash
+npm run build
+```
+- Cleans `dist/` directory
+- Runs esbuild: `server/index.ts` → `dist/index.js` (ESM, external packages)
+- Copies `docs/rmf-funds-consolidated.csv` to `dist/docs/`
+- Copies 403 JSON files from `data/rmf-funds/` to `dist/data/rmf-funds/`
+- **Build FAILS if CSV or JSON files missing**
+- Output: `dist/index.js` (54KB bundled)
+- Build time: ~6ms on clean build
 
-### Backend Patterns
-- Use Express request/response types explicitly
-- Validate request bodies with Zod schemas
-- Use async/await for asynchronous operations
-- Handle errors with try/catch and return proper HTTP status codes
-- Use environment variables for configuration (accessed via `process.env`)
+### 3. Run Tests
+```bash
+npm test                    # Core MCP tools test suite
+npm run test:http           # HTTP integration (requires server running)
+npm run test:security       # Security validation
+npm run test:integration    # Full integration (requires server)
+npm run test:all            # All tests combined
+```
+- Uses `tsx` to run TypeScript directly
+- **Known issue:** Some tests have expected failures (non-blocking)
+- Tests validate 6 MCP tools with 403 fund dataset
 
-### API Integration
-- SEC API key stored in `SEC_API_KEY` environment variable
-- Use header `'Ocp-Apim-Subscription-Key'` for SEC API authentication
-- Main SEC API endpoints in `server/services/secApi.ts`
+### 4. Development Server
+```bash
+npm run dev
+```
+- Uses `tsx server/index.ts` (no build required)
+- Listens on `http://0.0.0.0:5000`
+- Loads 403 RMF funds from CSV (~111ms load time)
+- Endpoints: POST /mcp, GET /healthz, GET /
+
+### 5. Production Server
+```bash
+npm start
+```
+- Runs compiled `dist/index.js`
+- **Requires `npm run build` first**
+- Same endpoints, optimized bundle
+
+---
 
 ## Project Structure
 
+### Core Files (Must Know)
 ```
-/client                    # Frontend React application
-  /src
-    /components           # Reusable UI components
-    /hooks                # Custom React hooks
-    /lib                  # Utility functions
-    /pages                # Page components
-    App.tsx               # Main app component
-    main.tsx              # Entry point
+server/
+  index.ts              # Express server, MCP endpoint, health checks
+  mcp.ts                # MCP server, 6 tool definitions with Zod schemas
+  services/
+    rmfDataService.ts   # CSV loader, in-memory fund storage
 
-/server                   # Backend Express server
-  index.ts                # Server entry point
-  routes.ts               # API route definitions
-  /services              # Business logic and external API integrations
-    secApi.ts             # Thailand SEC API integration
+shared/
+  schema.ts             # Zod schemas: RMFFundCSV, AssetAllocation, etc.
 
-/shared                   # Shared code between client and server
-  schema.ts               # Zod schemas and TypeScript types
+scripts/
+  build.mjs             # esbuild + asset copying (CRITICAL for production)
 
-/scripts                  # Data processing scripts
-  /data-extraction        # Scripts for fetching fund data
-  /data-parsing           # Scripts for parsing fund data
-
-/data                     # Static and cached fund data
-  /rmf-funds              # Individual RMF fund JSON files
-  fund-mapping.json       # Fund symbol to SEC ID mapping
-  progress.json           # Data fetching progress tracking
-
-/docs                     # Project documentation
-  prd_thai_rmf_app.md     # Product requirements
-  design_guidelines.md    # Design system
+tests/
+  mcp/test-mcp-tools.ts          # Main test suite (6 tools)
+  integration/final-integration-test.sh  # HTTP integration
+  security/test-security.mjs     # Security tests
 ```
 
-## Key Files to Reference
+### Data Files (CRITICAL - Build Dependencies)
+```
+docs/
+  rmf-funds-consolidated.csv     # 403 funds, ~150KB (REQUIRED for build)
 
-### Schema Definitions
-- `shared/schema.ts` - All Zod schemas and TypeScript types for funds, NAV data, asset allocation, etc.
+data/
+  rmf-funds/
+    ABAPAC-RMF.json              # 403 individual files
+    ABGDD-RMF.json
+    ... (403 total)
+  fund-mapping.json              # Symbol → SEC API ID mapping
+```
 
-### API Integration
-- `server/services/secApi.ts` - SEC API integration functions
-- `server/routes.ts` - Express route handlers
+### Configuration
+```
+package.json     # "type": "module" (ESM only), scripts, dependencies
+tsconfig.json    # noEmit: true, module: ESNext, strict: true
+.env.example     # SEC API keys (optional for running server)
+.gitignore       # Ignores: node_modules, dist, .env, data/progress.json
+```
 
-### Frontend Components
-- `client/src/App.tsx` - Main application component
-- `client/src/pages/` - Page components
+---
 
-### Data Processing
-- `scripts/data-extraction/rmf/` - RMF fund data fetching scripts
-- Uses `data/fund-mapping.json` to map fund symbols to SEC IDs
+## Common Issues & Workarounds
 
-## Important Domain Knowledge
+### Build Failures
 
-### Thai RMF Context
-- **RMF** = Retirement Mutual Fund (Thai tax-advantaged retirement fund)
-- Tax season peak: November-December (before Dec 31 deadline)
-- Tax deduction limit: up to 500,000 THB
-- 410+ RMF funds from various Asset Management Companies (AMCs)
+**❌ "CSV file not found: docs/rmf-funds-consolidated.csv"**
+```bash
+# Check if file exists
+ls -lh docs/rmf-funds-consolidated.csv
+# Should show ~150KB file with 403 records
+```
 
-### Fund Data Fields
-- **NAV** (Net Asset Value) - Current fund price
-- **Asset Allocation** - Distribution across Equity, Bond, Cash, etc.
-- **Holdings** - Top securities held by the fund
-- **Performance** - Returns over various time periods (1Y, 3Y, 5Y, etc.)
-- **AMC** - Asset Management Company (fund provider)
+**❌ "JSON directory not found: data/rmf-funds"**
+```bash
+# Check file count
+ls data/rmf-funds/*.json | wc -l
+# Should show 403
+```
 
-### SEC API Integration
-- Base URL: `https://api.sec.or.th/FundFactsheet/`
-- Requires subscription key in headers
-- Main endpoints:
-  - `/fund` (POST) - Search funds
-  - `/fund/amc/portfolio` (POST) - Get fund details, holdings, allocation
-  - `/fund/amc/nav` (POST) - Get NAV history
+**❌ "dist/ not created"**
+```bash
+# Do NOT use tsc directly
+# Use the build script which handles esbuild + asset copying
+npm run build
+```
 
-## Coding Conventions
+### Type Errors
 
-### Naming
-- **React Components**: PascalCase (`FundCard`, `SearchBar`)
-- **Functions/Variables**: camelCase (`fetchFundData`, `fundList`)
-- **Types/Interfaces**: PascalCase (`RMFFund`, `AssetAllocation`)
-- **Constants**: UPPER_SNAKE_CASE for config (`SEC_API_KEY`)
-- **Files**: kebab-case for utilities, PascalCase for components
+**❌ Import errors for `@shared/schema`**
+```typescript
+// Correct
+import type { RMFFundCSV } from '@shared/schema';
+import { rmfFundSchema } from '@shared/schema';
 
-### File Organization
-- One component per file
-- Export component as default for page components
-- Named exports for utility functions and hooks
-- Group related types with their implementation
+// Wrong
+import { RMFFundCSV } from '@shared/schema';  // Type imported as value
+```
 
-### Error Handling
-- Always handle API errors gracefully
-- Provide user-friendly error messages
-- Log errors to console in development
-- Return proper HTTP status codes (400 for bad request, 500 for server errors)
+**❌ "require is not defined"**
+```typescript
+// Wrong - This project uses ESM only
+const service = require('./services/rmfDataService');
 
-### Comments
-- Use JSDoc for public functions
-- Explain "why" not "what" in inline comments
-- Document complex business logic
-- Add TODO comments for future improvements
+// Correct - Use import
+import { rmfDataService } from './services/rmfDataService';
+```
 
-## Common Tasks
+### Runtime Errors
 
-### Adding a New API Endpoint
-1. Define Zod schema in `shared/schema.ts`
-2. Create service function in `server/services/`
-3. Add route handler in `server/routes.ts`
-4. Create frontend hook in `client/src/hooks/`
-5. Use TanStack Query in component
+**❌ Server starts but "Loaded 0 RMF funds"**
+- Check CSV file is readable: `cat docs/rmf-funds-consolidated.csv | wc -l`
+- Should show 404 lines (403 funds + header)
+- Check file encoding (should be UTF-8)
 
-### Creating a New Component
-1. Create file in `client/src/components/`
-2. Import and use Radix UI primitives if needed
-3. Style with Tailwind classes
-4. Export as named or default export
-5. Add to component index if creating component library
+**❌ MCP tool returns empty results**
+- Ensure `rmfDataService.initialize()` completed on startup
+- Look for "✓ Loaded 403 RMF funds" in console output
+- Check CSV has proper columns: proj_name_en, proj_abbr_name, nav_value, etc.
 
-### Adding Environment Variables
-1. Add to `.env` file (not committed)
-2. Add to `.env.example` with placeholder
-3. Document in README.md
-4. Access via `process.env.VARIABLE_NAME`
+### Test Failures (Known Issues)
 
-### Working with Fund Data
-1. Check `data/fund-mapping.json` for symbol-to-ID mapping
-2. Use scripts in `scripts/data-extraction/rmf/` to fetch new data
-3. Individual fund data stored in `data/rmf-funds/`
-4. Follow existing JSON structure for consistency
+**Some tests fail but are non-blocking:**
+- Missing `timestamp` field in response (expected by test, not in data)
+- Missing `navHistory7d` field (not implemented yet)
+- AMC filter errors (data inconsistency)
+- These failures do NOT indicate runtime bugs
 
-## Testing Approach
+---
 
-### Manual Testing
-- Test all API endpoints with different query parameters
-- Verify error handling for invalid inputs
-- Check responsive design at different breakpoints
-- Test theme switching
-- Verify data refresh behavior
+## Code Style & TypeScript Rules
 
-### API Testing
-- Use `/api/debug/sec` endpoint to verify SEC API connectivity
-- Check `data/progress.json` for data fetching status
-- Verify fund data completeness with `scripts/data-extraction/rmf/identify-incomplete-funds.ts`
+### Strict TypeScript
+```typescript
+// tsconfig.json enforces:
+// - strict: true (no implicit any, null checks)
+// - noEmit: true (type checking only)
+// - module: ESNext (ES modules)
+// - allowImportingTsExtensions: true
 
-## Performance Considerations
+// Always use explicit types for function returns
+async function getFunds(): Promise<RMFFundCSV[]> {
+  return await rmfDataService.getAllFunds();
+}
 
-- Use TanStack Query caching for API responses
-- Implement pagination for large fund lists (20 funds per page)
-- Lazy load images and heavy components
-- Debounce search inputs
-- Use React.memo for expensive components
+// Use Zod for runtime validation
+const input = getFundInputSchema.parse(req.body);
+```
 
-## Security & Privacy
+### ESM Only - Never use require()
+```typescript
+// Correct
+import express from 'express';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { RMFFundCSV } from '@shared/schema';
 
-- Never commit API keys or secrets
-- Validate all user inputs with Zod
-- Sanitize data before displaying
-- Use environment variables for sensitive config
-- Follow CORS best practices
+// Wrong - will break in this project
+const express = require('express');
+```
 
-## Documentation
+### MCP Tool Response Format
+```typescript
+// All tools MUST return this structure
+return {
+  content: [
+    { 
+      type: 'text', 
+      text: 'Human-readable summary for ChatGPT' 
+    },
+    { 
+      type: 'text', 
+      text: JSON.stringify(structuredData, null, 2) 
+    }
+  ]
+};
+```
 
-- Update README.md for user-facing changes
-- Update docs/ for major features or architectural changes
-- Use clear commit messages (conventional commits preferred)
-- Document breaking changes
+### Error Handling Pattern
+```typescript
+// In MCP tool handlers
+try {
+  const result = await rmfDataService.searchFunds(args);
+  return { content: [/* ... */] };
+} catch (error) {
+  console.error('Tool error:', error);  // Log full error internally
+  return {
+    content: [{
+      type: 'text',
+      text: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    }]
+  };
+}
+```
 
-## MCP Integration Notes
+---
 
-- MCP SDK imported from `@modelcontextprotocol/sdk`
-- Designed for ChatGPT Shop integration
-- Follow MCP protocol standards for widget communication
-- See `openai-app-sdk/` for reference documentation
+## Making Changes Safely
 
-## When Suggesting Code
+### Adding/Modifying MCP Tools
 
-1. **Prefer existing patterns** - Follow the established code style in the project
-2. **Use project dependencies** - Don't suggest new libraries unless necessary
-3. **Type safety first** - Always provide proper TypeScript types
-4. **Accessibility matters** - Use Radix UI for accessible components
-5. **Performance aware** - Consider bundle size and runtime performance
-6. **Thai context** - Remember this is for Thai users/market (THB currency, Thai regulations)
+1. **Define Zod schema in `server/mcp.ts`:**
+```typescript
+this.server.tool(
+  'my_new_tool',
+  'Tool description for ChatGPT',
+  {
+    param1: z.string().describe('Parameter description'),
+    param2: z.number().optional().describe('Optional parameter'),
+  },
+  async (args) => this.handleMyNewTool(args)
+);
+```
 
-## Common Pitfalls to Avoid
+2. **Implement handler method:**
+```typescript
+private async handleMyNewTool(args: any) {
+  const data = await rmfDataService.getData(args);
+  return {
+    content: [
+      { type: 'text', text: 'Summary' },
+      { type: 'text', text: JSON.stringify(data) }
+    ]
+  };
+}
+```
 
-- Don't use React Router (we use Wouter)
-- Don't use inline styles (use Tailwind)
-- Don't forget to validate API responses with Zod
-- Don't hardcode API keys in code
-- Don't forget error boundaries for React components
-- Don't ignore TypeScript errors
-- Don't fetch data in components directly (use TanStack Query)
+3. **Add test in `tests/mcp/test-mcp-tools.ts`:**
+```typescript
+{
+  name: 'my_new_tool - Test case',
+  tool: 'my_new_tool',
+  input: { param1: 'value' },
+  expectedFields: ['result', 'timestamp'],
+}
+```
 
-## References
+4. **Validate:**
+```bash
+npm run check && npm run build && npm test
+```
 
-- Product Requirements: `docs/prd_thai_rmf_app.md`
-- Design Guidelines: `docs/design_guidelines.md`
-- SEC API Documentation: `docs/SEC-API-INTEGRATION-SUMMARY.md`
-- Implementation Plans: `docs/IMPLEMENTATION_PLAN_*.md`
+### Modifying Data Schema
+
+1. Update Zod schemas in `shared/schema.ts`
+2. Update CSV structure if needed (use data extraction scripts)
+3. Run `npm run check` to catch type errors across codebase
+4. Rebuild: `npm run build`
+5. Restart server: `npm run dev`
+
+### Updating Dependencies
+
+```bash
+# Check if package supports ESM (required)
+npm view <package-name> type
+
+# Install
+npm install <package-name>
+
+# Validate
+npm run check && npm run build && npm test
+```
+
+---
+
+## Environment Variables
+
+### Not Required for Running Server
+The server works without any environment variables for read-only operations (serving existing data).
+
+### Required for Data Fetching Scripts
+```bash
+# Thailand SEC API keys (get from https://api-portal.sec.or.th/)
+SEC_FUND_FACTSHEET_KEY=your_key_here
+SEC_FUND_DAILY_INFO_KEY=your_key_here
+```
+
+### Optional Configuration
+```bash
+PORT=5000                    # Server port (default: 5000)
+NODE_ENV=development         # Environment (default: development)
+ALLOWED_ORIGINS=*            # CORS origins (default: *)
+```
+
+**Security Note:** Never commit `.env` file. Use `.env.example` as template.
+
+---
+
+## Key Architectural Decisions
+
+### Why CSV instead of Database?
+- **Simplicity:** No database setup, migrations, or ORM overhead
+- **Performance:** 403 funds load in ~111ms, fit in memory (~10MB)
+- **Portability:** Works anywhere Node.js runs, no DB dependencies
+- **Deployment:** Single binary + data files, no external services
+
+### Why ESM Only?
+- MCP SDK requires ES modules
+- Modern Node.js best practice
+- Cleaner import/export syntax
+- Better tree-shaking for production builds
+
+### Why No CI/CD?
+- Small project, manual testing sufficient
+- Deployed to Replit with auto-deployments from git push
+- Tests run locally before commit
+
+### Why esbuild?
+- Fast builds (~6ms)
+- Single file output for easy deployment
+- External packages kept as node_modules (smaller bundle)
+- Native TypeScript support
+
+---
+
+## Trust These Instructions
+
+These instructions are validated against the actual codebase. **Only search for additional information if:**
+
+1. Instructions contradict what you observe (report this as an issue)
+2. You need implementation details not covered here
+3. A command fails with an error not documented above
+
+**When commands fail:** Check the error message against "Common Issues & Workarounds" section before exploring further. Most issues are already documented.
+
+**Build sequence is sacred:** Always run `npm run check` before `npm run build`. Always run `npm run build` before `npm start`. Skipping steps leads to confusing errors.
