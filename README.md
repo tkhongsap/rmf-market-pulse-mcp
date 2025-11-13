@@ -118,9 +118,22 @@ Returns server information, available tools, and endpoints.
 ## 🧪 Testing
 
 ```bash
-npm test          # Run comprehensive test suite
-npm run test:http # HTTP integration test
+npm test                    # Run MCP tools test suite
+npm run test:coverage       # Run tests with coverage report
+npm run test:http           # HTTP integration test
+npm run test:security       # Security tests
+npm run test:integration    # Final integration test
+npm run test:user-scenarios # Natural language question tests
+npm run test:all            # Run all test suites
 ```
+
+Test files are organized in the `tests/` directory:
+- `tests/mcp/` - MCP tool tests
+- `tests/integration/` - Integration tests
+- `tests/user-scenarios/` - User scenario tests
+- `tests/security/` - Security tests
+- `tests/helpers/` - Test helper scripts
+- `tests/api/` - API tests
 
 ## 📦 Dependencies
 
