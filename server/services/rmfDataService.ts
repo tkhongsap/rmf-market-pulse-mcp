@@ -279,7 +279,7 @@ export class RMFDataService {
 
     // Validate symbol exists in our fund list
     if (!this.fundsMap.has(sanitizedSymbol)) {
-      console.warn(`Invalid or unknown fund symbol requested: ${symbol}`);
+      console.warn('Invalid or unknown fund symbol requested');
       return [];
     }
 
@@ -315,7 +315,7 @@ export class RMFDataService {
 
       return filteredHistory;
     } catch (error) {
-      console.warn(`Failed to load NAV history for ${sanitizedSymbol}:`, error);
+      console.warn('Failed to load NAV history for fund');
       return [];
     }
   }

@@ -228,8 +228,16 @@ async function startServer() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('\n🛑 Shutting down server...');
+
+    // Set 10-second timeout to force exit
+    const forceExitTimeout = setTimeout(() => {
+      console.log('⚠️  Force closing server after timeout');
+      process.exit(1);
+    }, 10000);
+
     httpServer.close(() => {
-      console.log('✓ Server closed');
+      clearTimeout(forceExitTimeout);
+      console.log('✓ Server closed gracefully');
       process.exit(0);
     });
   };
