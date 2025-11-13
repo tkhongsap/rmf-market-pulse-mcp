@@ -13,6 +13,7 @@ A complete Model Context Protocol (MCP) integration enabling ChatGPT to query an
 #### MCP Server Integration
 - **Protocol**: @modelcontextprotocol/sdk with StreamableHTTPServerTransport
 - **Endpoint**: POST /mcp (JSON-RPC 2.0)
+- **Landing Page**: GET /mcp (Beautiful HTML documentation page)
 - **Methods**: tools/list, tools/call
 - **Status**: All 6 tools implemented, tested, and architect-approved
 

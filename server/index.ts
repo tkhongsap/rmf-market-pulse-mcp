@@ -97,7 +97,334 @@ const mcpLimiter = rateLimit({
 });
 
 /**
- * MCP Protocol endpoint (POST only)
+ * MCP Protocol endpoint - GET: Landing page with documentation
+ */
+app.get('/mcp', (_req, res) => {
+  const totalFunds = rmfDataService.getTotalCount();
+  
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thai RMF Market Pulse - MCP Server</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #1a202c;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 60px;
+      animation: fadeInDown 0.8s ease;
+    }
+    .header h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header .subtitle {
+      font-size: 20px;
+      opacity: 0.9;
+      font-weight: 300;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    .stat-card {
+      background: white;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInUp 0.8s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    .stat-number {
+      font-size: 48px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 16px;
+      color: #718096;
+      font-weight: 600;
+    }
+    .content-card {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 32px;
+      animation: fadeInUp 0.8s ease 0.2s both;
+    }
+    h2 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #2d3748;
+    }
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 24px 0 16px 0;
+      color: #4a5568;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .tool-item {
+      padding: 20px;
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+      transition: all 0.3s ease;
+    }
+    .tool-item:hover {
+      border-left-color: #764ba2;
+      transform: translateX(5px);
+    }
+    .tool-name {
+      font-weight: 700;
+      color: #2d3748;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .tool-desc {
+      color: #718096;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .code-block {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 24px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.8;
+      margin: 16px 0;
+      position: relative;
+    }
+    .code-block::before {
+      content: attr(data-lang);
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 11px;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .endpoint-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .post-badge { background: #48bb78; color: white; }
+    .get-badge { background: #4299e1; color: white; }
+    .footer {
+      text-align: center;
+      color: white;
+      margin-top: 60px;
+      padding: 20px;
+      opacity: 0.9;
+    }
+    .footer a {
+      color: white;
+      text-decoration: underline;
+      font-weight: 600;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .highlight { color: #667eea; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🇹🇭 Thai RMF Market Pulse</h1>
+      <p class="subtitle">Model Context Protocol Server for Thai Retirement Mutual Funds</p>
+      <div class="badge">✨ MCP Protocol v1.0 | ${totalFunds} RMF Funds Loaded</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-number">${totalFunds}</div>
+        <div class="stat-label">RMF Funds</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">6</div>
+        <div class="stat-label">MCP Tools</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">100%</div>
+        <div class="stat-label">Real-Time Data</div>
+      </div>
+    </div>
+
+    <div class="content-card">
+      <h2>📡 MCP Endpoint</h2>
+      <p style="color: #718096; margin-bottom: 24px; font-size: 16px; line-height: 1.8;">
+        This server implements the <span class="highlight">Model Context Protocol (MCP)</span> for querying Thai Retirement Mutual Fund (RMF) data. 
+        Send JSON-RPC 2.0 requests to interact with ${totalFunds} funds and access comprehensive market analytics.
+      </p>
+      
+      <h3><span class="post-badge">POST</span> /mcp</h3>
+      <div class="code-block" data-lang="bash">curl -X POST https://rmf-market-pulse-mcp-tkhongsap.replit.app/mcp \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json, text/event-stream" \\
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "get_rmf_fund_performance",
+      "arguments": {"period": "ytd", "limit": 5}
+    }
+  }'</div>
+    </div>
+
+    <div class="content-card">
+      <h2>🛠️ Available MCP Tools</h2>
+      <p style="color: #718096; margin-bottom: 24px; font-size: 16px;">
+        Query the server using these 6 powerful tools via the MCP protocol:
+      </p>
+      
+      <div class="tools-grid">
+        <div class="tool-item">
+          <div class="tool-name">📋 get_rmf_funds</div>
+          <div class="tool-desc">List all RMF funds with pagination and flexible sorting options</div>
+        </div>
+        
+        <div class="tool-item">
+          <div class="tool-name">🔍 search_rmf_funds</div>
+          <div class="tool-desc">Search and filter funds by name, AMC, risk level, category, and performance</div>
+        </div>
+        
+        <div class="tool-item">
+          <div class="tool-name">📊 get_rmf_fund_detail</div>
+          <div class="tool-desc">Get comprehensive details for a specific fund including NAV, fees, and holdings</div>
+        </div>
+        
+        <div class="tool-item">
+          <div class="tool-name">🏆 get_rmf_fund_performance</div>
+          <div class="tool-desc">Top performing funds by period (YTD, 3M, 1Y, 3Y, 5Y, 10Y) with benchmarks</div>
+        </div>
+        
+        <div class="tool-item">
+          <div class="tool-name">📈 get_rmf_fund_nav_history</div>
+          <div class="tool-desc">Historical NAV data with volatility analysis and trend indicators</div>
+        </div>
+        
+        <div class="tool-item">
+          <div class="tool-name">⚖️ compare_rmf_funds</div>
+          <div class="tool-desc">Side-by-side comparison of 2-5 funds across performance, risk, and fees</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-card">
+      <h2>📚 Quick Start Examples</h2>
+      
+      <h3>1️⃣ List all available tools</h3>
+      <div class="code-block" data-lang="json">{
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "id": 1
+}</div>
+
+      <h3>2️⃣ Find gold-related RMF funds</h3>
+      <div class="code-block" data-lang="json">{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "search_rmf_funds",
+    "arguments": {
+      "search": "gold",
+      "limit": 5
+    }
+  },
+  "id": 2
+}</div>
+
+      <h3>3️⃣ Get low-risk funds with best YTD returns</h3>
+      <div class="code-block" data-lang="json">{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "search_rmf_funds",
+    "arguments": {
+      "minRiskLevel": 1,
+      "maxRiskLevel": 3,
+      "sortBy": "ytd",
+      "limit": 10
+    }
+  },
+  "id": 3
+}</div>
+    </div>
+
+    <div class="content-card">
+      <h2>🔗 Additional Endpoints</h2>
+      <p style="margin-bottom: 16px;"><span class="get-badge">GET</span> <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px;">/</code> - Server information and health status</p>
+      <p><span class="get-badge">GET</span> <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px;">/healthz</code> - Health check endpoint for monitoring</p>
+    </div>
+
+    <div class="footer">
+      <p>
+        Built with ❤️ for Thai investors | 
+        <a href="https://github.com/tkhongsap/rmf-market-pulse-mcp" target="_blank">View on GitHub</a> | 
+        Powered by Model Context Protocol
+      </p>
+    </div>
+  </div>
+</body>
+</html>`);
+});
+
+/**
+ * MCP Protocol endpoint - POST: Handle MCP tool calls
  * Handles all MCP tool calls according to the Model Context Protocol
  */
 app.post('/mcp', mcpLimiter, async (req, res) => {
